@@ -1,0 +1,103 @@
+{% extends "base.html" %}
+{% block title %}{{ place.name }}{% endblock %}
+{% block content %}
+{% set next_url = request.full_path %}
+{% if args %}<p><a href="{{ url_for('search_view', **args) }}">← {{ t('back_to_results') }}</a></p>{% endif %}
+<div class="split">
+  <div>
+    <section class="card">
+      <h1>{{ place.name }}</h1>
+      <p>{% for c in place.categories %}<span class="tag">{{ t('cat_' ~ c) }}</span>{% endfor %}</p>
+      <p>{{ place.description }}</p>
+      <dl class="facts">
+        <dt>{{ t('fee') }}</dt><dd>{{ t('free') if not place.fee else '{:,}'.format(place.fee) ~ ' ' ~ t('won') }}</dd>
+        <dt>{{ t('hours') }}</dt>
+        <dd>
+          {% if place.hours %}
+            {% for i in range(7) %}{{ t('day_' ~ i) }} {{ place.hours.get(i|string) or t('closed') }}{{ ' · ' if not loop.last }}{% endfor %}
+          {% else %}-{% endif %}
+        </dd>
+        <dt>{{ t('google') }}</dt>
+        <dd>{% if place.google_rating %}★ {{ place.google_rating }} ({{ '{:,}'.format(place.google_reviews) }}){% else %}{{ t('no_google') }}{% endif %}</dd>
+        <dt>{{ t('likes') }}</dt><dd>{{ place.likes }}</dd>
+      </dl>
+      {% if user %}
+      <form method="post" action="{{ url_for('like', place_id=place.id) }}">
+        <input type="hidden" name="next" value="{{ next_url }}">
+        <button class="btn {{ 'ghost' if liked }}">{{ '♥ ' ~ t('unlike') if liked else '♡ ' ~ t('like') }}</button>
+      </form>
+      {% endif %}
+    </section>
+
+    {% if scored %}
+    <section class="card">
+      <h2>{{ t('score_detail') }}</h2>
+      <table class="scores">
+        <thead><tr><th>{{ t('criterion') }}</th><th>{{ t('raw_score') }}</th><th>{{ t('weight') }}</th><th>{{ t('contrib') }}</th></tr></thead>
+        <tbody>
+          {% for k in WEIGHTS %}
+          {% set w = scored.result.weights.get(k) %}
+          <tr class="{{ 'off' if w is none }}">
+            <td>{{ k|upper }} {{ t(k) }}</td>
+            <td>{{ '%.3f'|format(scored.result.scores[k]) if w is not none else t('not_used') }}</td>
+            <td>{{ '%.3f'|format(w) if w is not none else '-' }}</td>
+            <td>{{ '%.3f'|format(scored.result.contrib[k]) if w is not none else '-' }}</td>
+          </tr>
+          {% endfor %}
+        </tbody>
+        <tfoot>
+          <tr><th colspan="3">{{ t('total') }}</th><th>{{ '%.1f'|format(scored.result.total) }}</th></tr>
+          {% if scored.penalty_k %}
+          <tr><th colspan="3">{{ t('adjusted') }}</th><th>{{ '%.1f'|format(scored.adjusted) }}</th></tr>
+          {% endif %}
+        </tfoot>
+      </table>
+      {% if scored.penalty_k %}<p class="small muted">{{ t('diversity_note', k=scored.penalty_k) }}</p>{% endif %}
+      {% if place.google_reviews is none %}<p class="small muted">{{ t('neutral_note') }}</p>{% endif %}
+    </section>
+    {% elif excluded_reasons %}
+    <section class="card">
+      <h2>{{ t('excluded_title') }}</h2>
+      {% for r in excluded_reasons %}<span class="tag warn">{{ t('reason_' ~ r) }}</span>{% endfor %}
+    </section>
+    {% endif %}
+  </div>
+
+  <div>
+    {% include "_map.html" %}
+    <section class="card">
+      <h2>{{ t('reviews') }}</h2>
+      <dl class="facts">
+        <dt>{{ t('avg_rating') }}</dt><dd>{{ '%.2f'|format(summary.avg) if summary.avg is not none else '-' }}</dd>
+        <dt>{{ t('review_count') }}</dt><dd>{{ summary.count }}</dd>
+        <dt>{{ t('adjusted_rating') }}</dt><dd>{{ '%.2f'|format(summary.adjusted) }}</dd>
+      </dl>
+      <p class="small muted">{{ t('adjusted_rating_note', c='%.2f'|format(summary.site_avg)) }}</p>
+
+      {% if user %}
+      <form class="review-form" method="post" action="{{ url_for('write_review', place_id=place.id) }}">
+        <input type="hidden" name="next" value="{{ next_url }}">
+        <h3>{{ t('edit_review') if mine else t('write_review') }}</h3>
+        <label>{{ t('rating') }}
+          <select name="rating">
+            {% for r in range(5, 0, -1) %}<option value="{{ r }}" {{ 'selected' if mine and mine.rating == r }}>{{ '★' * r }}</option>{% endfor %}
+          </select>
+        </label>
+        <label>{{ t('review_body') }}<textarea name="body" maxlength="500">{{ mine.body if mine else '' }}</textarea></label>
+        <button class="btn">{{ t('save') }}</button>
+      </form>
+      {% else %}
+      <p class="muted"><a href="{{ url_for('login', next=request.full_path) }}">{{ t('login_to_review') }}</a></p>
+      {% endif %}
+
+      <ul class="reviews">
+        {% for r in reviews %}
+          <li><strong>{{ '★' * r.rating }}</strong> <span class="muted small">{{ r.username }} · {{ r.updated_at[:10] }}</span><p>{{ r.body }}</p></li>
+        {% else %}
+          <li class="muted">{{ t('no_reviews') }}</li>
+        {% endfor %}
+      </ul>
+    </section>
+  </div>
+</div>
+{% endblock %}

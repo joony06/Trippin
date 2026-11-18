@@ -1,0 +1,12 @@
+{% extends "base.html" %}
+{% block title %}{{ t('nav_login') }}{% endblock %}
+{% block content %}
+<form class="card narrow" method="post">
+  <h1>{{ t('nav_login') }}</h1>
+  {% if error %}<p class="error">{{ t(error) }}</p>{% endif %}
+  <label>{{ t('username') }}<input name="username" required autocomplete="username"></label>
+  <label>{{ t('password') }}<input name="password" type="password" required autocomplete="current-password"></label>
+  <button class="btn">{{ t('nav_login') }}</button>
+  <p class="small"><a href="{{ url_for('signup') }}">{{ t('nav_signup') }}</a></p>
+</form>
+{% endblock %}

@@ -1,0 +1,25 @@
+{% extends "base.html" %}
+{% block title %}{{ t('nav_signup') }}{% endblock %}
+{% block content %}
+<form class="card narrow" method="post">
+  <h1>{{ t('nav_signup') }}</h1>
+  {% if error %}<p class="error">{{ t(error) }}</p>{% endif %}
+  <label>{{ t('username') }}<input name="username" required minlength="3" autocomplete="username"></label>
+  <label>{{ t('password') }}<input name="password" type="password" required minlength="6" autocomplete="new-password"></label>
+  <label>{{ t('nationality') }}
+    <select name="nationality">{% for n in nationalities %}<option value="{{ n }}">{{ n }}</option>{% endfor %}</select>
+  </label>
+  <fieldset>
+    <legend>{{ t('role') }}</legend>
+    <label class="inline"><input type="radio" name="role" value="tourist" checked> {{ t('role_tourist') }}</label>
+    <label class="inline"><input type="radio" name="role" value="owner"> {{ t('role_owner') }}</label>
+  </fieldset>
+  <label>{{ t('owner_place') }}
+    <select name="owner_place_id">
+      <option value="">-</option>
+      {% for p in places %}<option value="{{ p.id }}">{{ p.name }}</option>{% endfor %}
+    </select>
+  </label>
+  <button class="btn">{{ t('nav_signup') }}</button>
+</form>
+{% endblock %}

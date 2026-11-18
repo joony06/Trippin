@@ -58,23 +58,40 @@ $$S = 100 \times \sum_{i=1}^{6} w_i \cdot s_i$$
 |---|---|
 | 언어 | Python 3.12 |
 | 웹 | Flask, Jinja2 템플릿, HTML/CSS |
-| 지도 | NAVER Maps (Web Dynamic Map) |
-| DB | SQLite (로컬) / PostgreSQL (배포) + SQLAlchemy |
-| 데이터 | Google Places API, 공공데이터포털, 한국관광공사 TourAPI |
-| 대시보드 | pandas, Plotly |
+| 지도 | Leaflet + OpenStreetMap (MVP) → 이후 네이버 지도 |
+| DB | SQLite (파이썬 기본 `sqlite3` 모듈) |
+| 데이터 | 공공데이터포털 소상공인 상가정보, 한국관광공사 TourAPI, Google Places API |
 | 배포 | Vercel |
+
+## MVP 진행 상황
+
+| # | 기능 | 상태 |
+|---|---|---|
+| 1 | 필터링 검색 | 하드 필터·S1~S6·정렬·다양성 보정이 샘플 데이터로 동작 |
+| 2 | 사업자 대시보드 | 7일 조회수, 찜, 유입 경로, 내·외국인 비율, 많이 걸린 검색어, 업종 평균 비교, 규칙 기반 개선 제안 |
+| 3 | 리뷰·평점 | 회원가입·로그인, 1인 1리뷰(수정 가능), 찜, 베이지안 보정 → S6 반영 |
+| 4 | 다국어 | 한국어·영어·중국어·일본어 화면 문구 (장소 이름·설명은 아직 한국어) |
+
+`data/sample_places.json`의 13곳은 시연용 데이터입니다. 좌표는 근사값이고, 평점·리뷰 수·요금·영업시간은 예시 값입니다.
 
 ## 폴더 구조
 
 ```
 Trippin/
-├─ app.py              # Flask 진입 파일 (Vercel이 여기서 app 을 찾음)
-├─ requirements.txt    # 의존성
-├─ public/             # 정적 파일 (로고, 파비콘, CSS, JS) - Vercel CDN이 제공
-├─ templates/          # Jinja2 화면 (예정)
-├─ core/               # 필터·점수·정렬·리뷰 계산 로직 (예정)
-├─ data/               # 데이터 수집 스크립트 (예정, 로컬에서만 실행)
-└─ i18n/               # 언어별 번역 파일 (예정)
+├─ app.py                 # Flask 라우트 (Vercel이 여기서 app 을 찾음)
+├─ db.py                  # SQLite 테이블·조회·대시보드 집계
+├─ core/
+│  ├─ search.py           # 하드 필터 → S1~S6 → 정렬·다양성 보정
+│  ├─ reviews.py          # 베이지안 보정 평점
+│  ├─ geo.py              # 하버사인 거리
+│  └─ i18n.py             # 번역 문구 찾기
+├─ data/
+│  ├─ sample_places.json  # 대전 중구 샘플 장소
+│  └─ collect_sbiz.py     # 상가정보 API 수집 스크립트 (초안)
+├─ i18n/                  # ko / en / zh / ja 화면 문구
+├─ templates/             # Jinja2 화면
+├─ public/                # CSS, 지도 스크립트, 로고 (Vercel CDN이 제공)
+└─ tests/                 # 점수 계산 테스트 (중간보고서 계산 예시 재현)
 ```
 
 ## 로컬 실행
@@ -87,24 +104,26 @@ python3 -m venv .venv
 source .venv/bin/activate        # Windows: .venv\Scripts\activate
 pip install -r requirements.txt
 
-cp .env.example .env             # 값 채우기
 flask --app app run --debug      # http://localhost:5000
 ```
 
+- 처음 실행하면 샘플 데이터가 들어간 DB(`trippin.db`)가 자동으로 만들어집니다. 초기화하려면 `flask --app app init-db`를 실행합니다.
+- 테스트: `pip install pytest` 후 `python -m pytest`
+
 ## 환경 변수
 
-`.env.example`을 복사해 `.env`를 만들고 값을 채웁니다. **`.env`는 절대 커밋하지 않습니다.**
+`.env.example`을 복사해 `.env`를 만듭니다. **`.env`는 절대 커밋하지 않습니다.**
 
 | 이름 | 용도 | 필요한 곳 |
 |---|---|---|
 | `SECRET_KEY` | 로그인 세션 암호화 | 로컬 · Vercel |
-| `DATABASE_URL` | PostgreSQL 주소 (비우면 로컬 SQLite) | Vercel |
-| `NAVER_MAP_CLIENT_ID` | 네이버 지도 표시 | 로컬 · Vercel |
-| `GOOGLE_PLACES_KEY` | 장소 평점·영업시간 수집 | 로컬 (수집 스크립트만) |
+| `DATA_GO_KR_KEY` | 공공데이터포털 인증키 (수집 스크립트) | 로컬 |
+| `NAVER_MAP_CLIENT_ID` | 네이버 지도 (이후) | 로컬 · Vercel |
+| `TRIPPIN_DB` | SQLite 파일 위치 (선택) | 로컬 |
 
 ## 배포
 
-`main` 브랜치에 push하면 Vercel이 자동으로 배포합니다. 다른 브랜치나 PR은 Preview 주소로 배포됩니다.
+`main` 브랜치에 push하면 Vercel이 자동으로 배포합니다. Vercel에서는 SQLite 파일이 `/tmp`에 있어 리뷰·회원 정보가 가끔 초기화됩니다. 최종 시연은 로컬 실행으로 하거나, 이후 외부 DB로 옮깁니다.
 
 ## 팀 (13팀)
 

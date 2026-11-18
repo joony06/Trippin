@@ -58,23 +58,40 @@ After sorting, a **diversity adjustment** multiplies the next candidate's score 
 |---|---|
 | Language | Python 3.12 |
 | Web | Flask, Jinja2 templates, HTML/CSS |
-| Map | NAVER Maps (Web Dynamic Map) |
-| Database | SQLite (local) / PostgreSQL (production) + SQLAlchemy |
-| Data | Google Places API, Public Data Portal (data.go.kr), Korea Tourism Organization TourAPI |
-| Dashboard | pandas, Plotly |
+| Map | Leaflet + OpenStreetMap (MVP) → NAVER Maps later |
+| Database | SQLite via Python's built-in `sqlite3` |
+| Data | Public Data Portal (small business store info), Korea Tourism Organization TourAPI, Google Places API |
 | Hosting | Vercel |
+
+## MVP status
+
+| # | Feature | Status |
+|---|---|---|
+| 1 | Filtered search | Hard filters, S1–S6, ranking and diversity adjustment work on sample data |
+| 2 | Business dashboard | Views (7 days), saves, traffic sources, domestic/international ratio, top keywords, category average, rule-based tips |
+| 3 | Reviews & ratings | Sign-up/login, one review per user (editable), saves, Bayesian adjustment fed into S6 |
+| 4 | Multilingual UI | Korean, English, Chinese and Japanese UI text (place names and descriptions are Korean for now) |
+
+The 13 places in `data/sample_places.json` are demo data: coordinates are approximate, and ratings, review counts, fees and hours are example values.
 
 ## Project structure
 
 ```
 Trippin/
-├─ app.py              # Flask entry point (Vercel looks for `app` here)
-├─ requirements.txt    # Dependencies
-├─ public/             # Static files (logo, favicon, CSS, JS), served by Vercel's CDN
-├─ templates/          # Jinja2 pages (planned)
-├─ core/               # Filtering, scoring, ranking and review logic (planned)
-├─ data/               # Data collection scripts, run locally only (planned)
-└─ i18n/               # Translation files per language (planned)
+├─ app.py                 # Flask routes (Vercel looks for `app` here)
+├─ db.py                  # SQLite tables, queries, dashboard aggregation
+├─ core/
+│  ├─ search.py           # Hard filters → S1–S6 → ranking & diversity adjustment
+│  ├─ reviews.py          # Bayesian-adjusted ratings
+│  ├─ geo.py              # Haversine distance
+│  └─ i18n.py             # Translation lookup
+├─ data/
+│  ├─ sample_places.json  # Demo places in Jung-gu, Daejeon
+│  └─ collect_sbiz.py     # Store-info API collection script (draft)
+├─ i18n/                  # ko / en / zh / ja UI text
+├─ templates/             # Jinja2 pages
+├─ public/                # CSS, map script, logo (served by Vercel's CDN)
+└─ tests/                 # Scoring tests (reproduces the mid-term report example)
 ```
 
 ## Running locally
@@ -87,24 +104,26 @@ python3 -m venv .venv
 source .venv/bin/activate        # Windows: .venv\Scripts\activate
 pip install -r requirements.txt
 
-cp .env.example .env             # fill in the values
 flask --app app run --debug      # http://localhost:5000
 ```
 
+- The database (`trippin.db`) is created with sample data on first run. Reset it with `flask --app app init-db`.
+- Run tests with `pip install pytest` and then `python -m pytest`.
+
 ## Environment variables
 
-Copy `.env.example` to `.env` and fill in the values. **Never commit `.env`.**
+Copy `.env.example` to `.env`. **Never commit `.env`.**
 
 | Name | Purpose | Needed in |
 |---|---|---|
 | `SECRET_KEY` | Signs login sessions | Local · Vercel |
-| `DATABASE_URL` | PostgreSQL URL (leave empty to use local SQLite) | Vercel |
-| `NAVER_MAP_CLIENT_ID` | Displays the NAVER map | Local · Vercel |
-| `GOOGLE_PLACES_KEY` | Collects ratings and opening hours | Local (collection scripts only) |
+| `DATA_GO_KR_KEY` | Public Data Portal key for collection scripts | Local only |
+| `NAVER_MAP_CLIENT_ID` | NAVER map (later) | Local · Vercel |
+| `TRIPPIN_DB` | SQLite file path (optional) | Local |
 
 ## Deployment
 
-Pushing to `main` deploys to production on Vercel automatically. Other branches and pull requests get preview deployments.
+Pushing to `main` deploys to production on Vercel automatically. On Vercel the SQLite file lives in `/tmp`, so reviews and accounts reset from time to time; use a local run for the final demo, or move to a hosted database later.
 
 ## Team (Team 13)
 
