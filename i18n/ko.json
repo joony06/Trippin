@@ -116,5 +116,8 @@
  "not_owner": "사업자 계정으로 로그인해야 볼 수 있어요.",
  "view_detail": "자세히",
  "back_to_results": "결과로 돌아가기",
- "footer": "트립핀 · 성균관대학교 문제해결과컴퓨팅 13팀"
+ "footer": "트립핀 · 성균관대학교 문제해결과컴퓨팅 13팀",
+ "showing_top": "상위 {n}곳만 보여 줘요.",
+ "photo_credit": "사진: 한국관광공사",
+ "reason_franchise": "대형 프랜차이즈"
 }

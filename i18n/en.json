@@ -116,5 +116,8 @@
  "not_owner": "Log in with a business account to view this.",
  "view_detail": "Details",
  "back_to_results": "Back to results",
- "footer": "Trippin · SKKU Problem Solving and Computing, Team 13"
+ "footer": "Trippin · SKKU Problem Solving and Computing, Team 13",
+ "showing_top": "Showing the top {n}.",
+ "photo_credit": "Photo: Korea Tourism Organization",
+ "reason_franchise": "Large franchise"
 }

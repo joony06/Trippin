@@ -2,6 +2,8 @@
 #
 # 버전 기록
 # v0.1 (2026-11-18) 테이블 생성(장소·회원·리뷰·찜·조회 기록), 샘플 데이터 적재, 조회·저장 함수 작성
+# v0.2 (2026-11-18) 실제 데이터(data/places.json)가 있으면 샘플 대신 적재, 장소에 영문 이름·동·주소·사진·출처 열 추가
+# v0.3 (2026-11-18) 대형 프랜차이즈 여부(is_franchise) 열 추가
 #
 # 저장 위치
 # - 로컬: 프로젝트 폴더의 trippin.db (환경 변수 TRIPPIN_DB로 바꿀 수 있음)
@@ -15,6 +17,7 @@ from datetime import datetime, timedelta
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 SAMPLE_PATH = os.path.join(BASE_DIR, "data", "sample_places.json")
+PLACES_PATH = os.path.join(BASE_DIR, "data", "places.json")  # build_places.py 결과
 
 if os.environ.get("TRIPPIN_DB"):
     DB_PATH = os.environ["TRIPPIN_DB"]
@@ -34,8 +37,14 @@ CREATE TABLE IF NOT EXISTS places (
     fee INTEGER DEFAULT 0,
     hours TEXT,                        -- JSON {"0": "10:00-18:00", ...}
     is_conglomerate INTEGER DEFAULT 0,
+    is_franchise INTEGER DEFAULT 0,      -- 대형 프랜차이즈 (하드 필터)
     google_rating REAL,
-    google_reviews INTEGER
+    google_reviews INTEGER,
+    name_en TEXT,
+    dong TEXT,
+    address TEXT,
+    image TEXT,
+    source TEXT                        -- tour / sbiz / sample
 );
 CREATE TABLE IF NOT EXISTS users (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -92,7 +101,7 @@ def init_db(reset=False):
         conn.executescript(SCHEMA)
         count = conn.execute("SELECT COUNT(*) FROM places").fetchone()[0]
         if count == 0:
-            load_places(conn, SAMPLE_PATH)
+            load_places(conn, PLACES_PATH if os.path.exists(PLACES_PATH) else SAMPLE_PATH)
 
 
 def load_places(conn, path):
@@ -102,13 +111,16 @@ def load_places(conn, path):
         conn.execute(
             """INSERT OR REPLACE INTO places
                (id, name, categories, description, lat, lng, fee, hours,
-                is_conglomerate, google_rating, google_reviews)
-               VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
+                is_conglomerate, is_franchise, google_rating, google_reviews,
+                name_en, dong, address, image, source)
+               VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
             (p["id"], p["name"], json.dumps(p["categories"], ensure_ascii=False),
              p.get("description"), p["lat"], p["lng"], p.get("fee", 0),
              json.dumps(p.get("hours")) if p.get("hours") is not None else None,
-             int(p.get("is_conglomerate", False)), p.get("google_rating"),
-             p.get("google_reviews")),
+             int(p.get("is_conglomerate", False)), int(p.get("is_franchise", False)),
+             p.get("google_rating"),
+             p.get("google_reviews"), p.get("name_en"), p.get("dong"), p.get("address"),
+             p.get("image"), p.get("source", "sample")),
         )
 
 
@@ -119,6 +131,7 @@ def _place_from_row(row):
     p["categories"] = json.loads(p["categories"])
     p["hours"] = json.loads(p["hours"]) if p["hours"] else None
     p["is_conglomerate"] = bool(p["is_conglomerate"])
+    p["is_franchise"] = bool(p["is_franchise"])
     return p
 
 
