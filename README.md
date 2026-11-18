@@ -130,8 +130,8 @@ Pushing to `main` deploys to production on Vercel automatically. On Vercel the S
 | Learning pair | Name | Role |
 |---|---|---|
 | 1 · Planning & frontend | Hanhee Park | Scoring review, review/rating system design, reports |
-| 1 · Planning & frontend | Nayeon Kim | UI design, search conditions & scoring design, multilingual UI |
+| 1 · Planning & frontend | Nayun Kim | UI design, search conditions & scoring design, multilingual UI |
 | 2 · Data & backend | Gayeon Kim | NAVER Maps integration, filtered search, opening-hours collection |
-| 2 · Data & backend | Wonjun Choi | Google API integration, dashboard aggregation, place data & descriptions |
+| 2 · Data & backend | Wonjoon Choi | Google API integration, dashboard aggregation, place data & descriptions |
 
 > A project for *Problem Solving and Computing* at Sungkyunkwan University
