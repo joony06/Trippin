@@ -5,6 +5,8 @@
 # v0.2 (2026-11-18) 로고·파비콘 적용, 로컬 실행 시 public/ 폴더를 정적 파일로 제공 (Vercel에서는 CDN이 제공)
 # v0.3 (2026-11-18) Vercel 빌드 실패 수정: app = Flask(...) 를 if 문 밖 최상위 한 줄로 정의
 # v0.4 (2026-11-18) MVP 뼈대: 필터링 검색·장소 상세(점수표)·리뷰·찜·회원가입/로그인·사업자 대시보드·다국어 연결
+# v0.5 (2026-11-18) 실제 데이터(수천 곳) 대응: 결과 목록·지도는 상위 30곳만, 첫 화면 지도는 관광공사 등록 장소만 표시
+# v0.6 (2026-11-18) 첫 화면 지도·사업자 가게 선택에서 대형 프랜차이즈도 제외
 
 import os
 import re
@@ -34,6 +36,7 @@ app.config["SECRET_KEY"] = os.environ.get("SECRET_KEY", "dev-only-secret")
 CATEGORIES = ["역사", "자연", "음식", "카페", "사진명소", "야경", "쇼핑", "문화", "액티비티", "가족"]
 DISTANCE_OPTIONS = [1, 2, 5, 10]
 BUDGET_OPTIONS = [0, 5000, 10000, 20000]
+RESULT_LIMIT = 30  # 결과 목록·지도에 보여 줄 최대 개수 (점수 계산은 전체 대상)
 NATIONALITIES = ["KR", "US", "CN", "JP", "TW", "VN", "TH", "PH", "ID", "OTHER"]
 
 db.init_db()
@@ -105,7 +108,10 @@ def map_points(items, src):
 
 @app.route("/")
 def index():
-    places = [p for p in db.all_places_with_stats() if not p["is_conglomerate"]]
+    places = [p for p in db.all_places_with_stats() if not p["is_conglomerate"] and not p.get("is_franchise")]
+    # 상가정보 점포까지 다 찍으면 수천 개라, 첫 화면은 관광공사 등록 장소(또는 샘플)만 보여 준다
+    landmarks = [p for p in places if p.get("source") != "sbiz"]
+    places = landmarks or places
     return render_template("index.html", points=map_points(places, "map"),
                            distance_options=DISTANCE_OPTIONS, budget_options=BUDGET_OPTIONS,
                            cond=Conditions())
@@ -115,8 +121,9 @@ def index():
 def search_view():
     cond = parse_conditions(request.args)
     ranked, excluded = search(db.all_places_with_stats(), cond, site_avg=db.site_average())
-    return render_template("results.html", cond=cond, ranked=ranked, excluded=excluded,
-                           points=map_points(ranked, "map"), args=search_args(),
+    shown = ranked[:RESULT_LIMIT]
+    return render_template("results.html", cond=cond, ranked=shown, total=len(ranked),
+                           excluded=excluded, points=map_points(shown, "map"), args=search_args(),
                            distance_options=DISTANCE_OPTIONS, budget_options=BUDGET_OPTIONS)
 
 
@@ -189,7 +196,7 @@ def like(place_id):
 
 @app.route("/signup", methods=["GET", "POST"])
 def signup():
-    places = [p for p in db.all_places_with_stats() if not p["is_conglomerate"]]
+    places = [p for p in db.all_places_with_stats() if not p["is_conglomerate"] and not p.get("is_franchise")]
     error = None
     if request.method == "POST":
         username = (request.form.get("username") or "").strip()

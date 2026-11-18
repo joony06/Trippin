@@ -2,6 +2,8 @@
 #
 # 버전 기록
 # v0.1 (2026-11-18) 보고서 예시 A 67.6점·B 46.3점 재현, 하드 필터·다양성 보정·베이지안 보정 테스트 작성
+# v0.2 (2026-11-18) 빨라진 다양성 보정이 '하나씩 다시 비교하는' 원래 방식과 같은 순서를 내는지 확인하는 테스트 추가
+# v0.3 (2026-11-18) 대형 프랜차이즈 하드 필터 테스트 추가
 #
 # 실행: python -m pytest -q
 
@@ -95,3 +97,38 @@ def test_diversity_penalty():
     assert [r["name"] for r in ranked] == ["A", "B", "D", "C"]
     c = next(r for r in ranked if r["name"] == "C")
     assert c["penalty_k"] == 2 and round(c["adjusted"], 1) == 65.6
+
+
+def _naive_diversity(items):
+    """보고서 설명 그대로: 매번 남은 후보 전체에 0.9^k를 곱해 다시 비교"""
+    remaining, counts, out = list(items), {}, []
+    while remaining:
+        for it in remaining:
+            it["_adj"] = it["result"]["total"] * 0.9 ** counts.get(it["main_category"], 0)
+        remaining.sort(key=lambda it: (-round(it["_adj"], 9), *s._tie_key(it)))
+        best = remaining.pop(0)
+        counts[best["main_category"]] = counts.get(best["main_category"], 0) + 1
+        out.append(best["id"])
+    return out
+
+
+def test_fast_diversity_matches_naive():
+    import copy
+    import random
+    rng = random.Random(7)
+    for _ in range(300):
+        items = [{"id": i, "main_category": rng.choice("abcd"), "distance_km": rng.choice([0.5, 1, 2]),
+                  "google_reviews": rng.choice([0, 10, None]),
+                  "result": {"total": rng.choice([50, 60, 70, 72.9, 81, 90])}}
+                 for i in range(rng.randint(1, 30))]
+        fast = [x["id"] for x in s.rank_with_diversity(copy.deepcopy(items))]
+        assert fast == _naive_diversity(copy.deepcopy(items))
+
+
+def test_franchise_is_excluded():
+    cond = s.Conditions(origin=(36.3256, 127.4213))
+    chain = _place("체인 카페 대흥점", ["카페"], "", None, None, lat=36.3256, lng=127.4213, is_franchise=True)
+    local = _place("동네 카페", ["카페"], "", None, None, lat=36.3256, lng=127.4213)
+    kept, excluded = s.hard_filter([chain, local], cond)
+    assert [p["name"] for p in kept] == ["동네 카페"]
+    assert excluded[0][1] == ["franchise"]

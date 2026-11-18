@@ -116,5 +116,8 @@
  "not_owner": "事業者アカウントでログインしてください。",
  "view_detail": "詳細",
  "back_to_results": "結果に戻る",
- "footer": "Trippin · 成均館大学 問題解決とコンピューティング 13班"
+ "footer": "Trippin · 成均館大学 問題解決とコンピューティング 13班",
+ "showing_top": "上位{n}件のみ表示しています。",
+ "photo_credit": "写真：韓国観光公社",
+ "reason_franchise": "大手フランチャイズ"
 }

@@ -2,6 +2,8 @@
 #
 # 버전 기록
 # v0.1 (2026-11-18) 중간보고서 계산식으로 필터링 검색 전체 흐름 작성
+# v0.2 (2026-11-18) 다양성 보정 속도 개선: 카테고리별 정렬 목록에서 맨 앞만 비교 (결과는 같고, 수천 곳에서도 빠름)
+# v0.3 (2026-11-18) 하드 필터에 대형 프랜차이즈 제외 추가 (팀 결정: 대기업 계열 + 대형 프랜차이즈 제외)
 
 import math
 from dataclasses import dataclass, field
@@ -80,6 +82,8 @@ def hard_filter(places, cond):
             reasons.append("budget")
         if p.get("is_conglomerate"):
             reasons.append("conglomerate")
+        elif p.get("is_franchise"):
+            reasons.append("franchise")
         item = dict(p, distance_km=d)
         if reasons:
             excluded.append((item, reasons))
@@ -195,25 +199,40 @@ def build_context(candidates, cond, site_avg=None, v_max=None):
 # ---------------------------------------------------------------- 3단계 정렬·보정
 
 def _tie_key(item):
-    # 동점이면 거리가 가까운 순 → 리뷰 수가 많은 순
-    return (item["distance_km"], -(item.get("google_reviews") or 0))
+    # 동점이면 거리가 가까운 순 → 리뷰 수가 많은 순 → (그래도 같으면) 장소 번호 순
+    return (item["distance_km"], -(item.get("google_reviews") or 0), item.get("id") or 0)
 
 
 def rank_with_diversity(scored):
-    """위에서부터 하나씩 고르며, 같은 대표 카테고리가 k개 나왔으면 0.9^k를 곱해 다시 비교한다."""
-    remaining = list(scored)
-    counts, ranked = {}, []
-    while remaining:
-        for item in remaining:
-            k = counts.get(item["main_category"], 0)
-            item["penalty_k"] = k
-            item["adjusted"] = item["result"]["total"] * (DIVERSITY_BASE ** k)
-        remaining.sort(key=lambda it: (-round(it["adjusted"], 9), *_tie_key(it)))
-        best = remaining.pop(0)
-        counts[best["main_category"]] = counts.get(best["main_category"], 0) + 1
+    """위에서부터 하나씩 고르며, 같은 대표 카테고리가 k개 나왔으면 0.9^k를 곱해 다시 비교한다.
+
+    같은 카테고리 안에서는 곱하는 값이 같으므로 순서가 바뀌지 않는다.
+    그래서 카테고리별로 미리 정렬해 두고, 매번 각 카테고리의 맨 앞 후보끼리만 비교한다.
+    """
+    groups = {}
+    for item in scored:
+        groups.setdefault(item["main_category"], []).append(item)
+    for items in groups.values():
+        items.sort(key=lambda it: (-round(it["result"]["total"], 9), *_tie_key(it)))
+    heads = {cat: 0 for cat in groups}  # 카테고리별로 다음에 비교할 위치 (= 이미 나온 개수 k)
+
+    ranked = []
+    while True:
+        best, best_key, best_cat = None, None, None
+        for cat, k in heads.items():
+            if k >= len(groups[cat]):
+                continue
+            item = groups[cat][k]
+            adjusted = item["result"]["total"] * (DIVERSITY_BASE ** k)
+            key = (-round(adjusted, 9), *_tie_key(item))
+            if best_key is None or key < best_key:
+                best, best_key, best_cat = item, key, cat
+                best["penalty_k"], best["adjusted"] = k, adjusted
+        if best is None:
+            return ranked
+        heads[best_cat] += 1
         best["rank"] = len(ranked) + 1
         ranked.append(best)
-    return ranked
 
 
 def search(places, cond, site_avg=None):

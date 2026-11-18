@@ -6,9 +6,12 @@
 <div class="split">
   <div>
     <section class="card">
+      {% if place.image %}<img class="place-photo" src="{{ place.image }}" alt="{{ place.name }}"><p class="small muted">{{ t('photo_credit') }}</p>{% endif %}
       <h1>{{ place.name }}</h1>
+      {% if place.name_en and lang != 'ko' %}<p class="muted">{{ place.name_en }}</p>{% endif %}
       <p>{% for c in place.categories %}<span class="tag">{{ t('cat_' ~ c) }}</span>{% endfor %}</p>
-      <p>{{ place.description }}</p>
+      {% if place.description %}<p>{{ place.description }}</p>{% endif %}
+      {% if place.address %}<p class="small muted">{{ place.address }}</p>{% endif %}
       <dl class="facts">
         <dt>{{ t('fee') }}</dt><dd>{{ t('free') if not place.fee else '{:,}'.format(place.fee) ~ ' ' ~ t('won') }}</dd>
         <dt>{{ t('hours') }}</dt>

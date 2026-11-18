@@ -116,5 +116,8 @@
  "not_owner": "请使用商家账户登录查看。",
  "view_detail": "详情",
  "back_to_results": "返回结果",
- "footer": "Trippin · 成均馆大学 问题解决与计算 第13组"
+ "footer": "Trippin · 成均馆大学 问题解决与计算 第13组",
+ "showing_top": "仅显示前 {n} 个。",
+ "photo_credit": "照片：韩国观光公社",
+ "reason_franchise": "大型连锁"
 }
