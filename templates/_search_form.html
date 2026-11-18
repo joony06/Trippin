@@ -1,0 +1,39 @@
+<form class="search-card" action="{{ url_for('search_view') }}" method="get">
+  <p class="muted small">{{ t('origin_note') }}</p>
+  <label>{{ t('f_query') }}
+    <input type="text" name="q" value="{{ cond.query }}" placeholder="{{ t('f_query_ph') }}">
+  </label>
+  <div class="row">
+    <label>{{ t('f_distance') }}
+      <select name="dist">
+        {% for d in distance_options %}<option value="{{ d }}" {{ 'selected' if cond.max_km == d }}>{{ d }} km</option>{% endfor %}
+      </select>
+    </label>
+    <label>{{ t('f_budget') }}
+      <select name="budget">
+        <option value="">{{ t('f_budget_none') }}</option>
+        {% for b in budget_options %}<option value="{{ b }}" {{ 'selected' if cond.budget == b }}>{{ t('free') if b == 0 else '{:,}'.format(b) ~ ' ' ~ t('won') }}</option>{% endfor %}
+      </select>
+    </label>
+  </div>
+  <div class="row">
+    <label>{{ t('f_day') }}
+      <select name="day">
+        <option value="">{{ t('f_any') }}</option>
+        {% for i in range(7) %}<option value="{{ i }}" {{ 'selected' if cond.day == i }}>{{ t('day_' ~ i) }}</option>{% endfor %}
+      </select>
+    </label>
+    <label>{{ t('f_time') }}
+      <input type="time" name="time" value="{{ cond.time or '' }}">
+    </label>
+  </div>
+  <fieldset>
+    <legend>{{ t('f_categories') }}</legend>
+    <div class="chips">
+      {% for c in CATEGORIES %}
+        <label class="chip"><input type="checkbox" name="cat" value="{{ c }}" {{ 'checked' if c in cond.categories }}><span>{{ t('cat_' ~ c) }}</span></label>
+      {% endfor %}
+    </div>
+  </fieldset>
+  <button type="submit" class="btn">{{ t('f_submit') }}</button>
+</form>

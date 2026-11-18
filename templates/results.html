@@ -1,0 +1,41 @@
+{% extends "base.html" %}
+{% block title %}{{ t('results_title') }}{% endblock %}
+{% block content %}
+<div class="split">
+  <div>
+    {% include "_search_form.html" %}
+    {% if excluded %}
+    <section class="card">
+      <h3>{{ t('excluded_title') }} ({{ excluded|length }})</h3>
+      <ul class="excluded">
+        {% for p, reasons in excluded %}
+          <li>{{ p.name }} — {% for r in reasons %}<span class="tag warn">{{ t('reason_' ~ r) }}</span>{% endfor %}</li>
+        {% endfor %}
+      </ul>
+    </section>
+    {% endif %}
+  </div>
+  <div>
+    {% include "_map.html" %}
+    <h2>{{ t('results_count', n=ranked|length) }}</h2>
+    {% if not ranked %}<p class="muted">{{ t('no_results') }}</p>{% endif %}
+    <ol class="results">
+      {% for p in ranked %}
+      <li>
+        <a class="result" href="{{ url_for('place_detail', place_id=p.id, src='list', **args) }}">
+          <span class="rank">{{ p.rank }}</span>
+          <span class="body">
+            <strong>{{ p.name }}</strong>
+            <span class="muted small">{% for c in p.categories %}{{ t('cat_' ~ c) }}{{ ' · ' if not loop.last }}{% endfor %} · {{ '%.1f'|format(p.distance_km) }} km</span>
+          </span>
+          <span class="score">
+            <span>{{ '%.1f'|format(p.adjusted) }}<small> {{ t('points') }}</small></span>
+            {% if p.penalty_k %}<span class="small muted">({{ '%.1f'|format(p.result.total) }} × 0.9<sup>{{ p.penalty_k }}</sup>)</span>{% endif %}
+          </span>
+        </a>
+      </li>
+      {% endfor %}
+    </ol>
+  </div>
+</div>
+{% endblock %}

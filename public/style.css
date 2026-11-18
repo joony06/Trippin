@@ -1,0 +1,71 @@
+/* 트립핀 MVP 스타일 · 로고 색: 남색 #0B1A4A, 파랑 #1E5BD8, 하늘 #2F86FF, 연파랑 #C3DAF9 */
+:root { --navy:#0B1A4A; --blue:#1E5BD8; --sky:#2F86FF; --pale:#E8F1FD; --line:#D9E2F0; --warn:#B4462E; }
+* { box-sizing: border-box; }
+body { margin:0; font-family: "Pretendard", "Apple SD Gothic Neo", "Noto Sans KR", system-ui, sans-serif; color: var(--navy); background:#F7F9FC; line-height:1.5; }
+a { color: var(--blue); text-decoration: none; }
+a:hover { text-decoration: underline; }
+main { max-width: 1180px; margin: 0 auto; padding: 24px 20px 48px; }
+.topbar { display:flex; align-items:center; justify-content:space-between; gap:16px; padding:12px 20px; background:#fff; border-bottom:1px solid var(--line); flex-wrap:wrap; }
+.brand img { height:32px; display:block; }
+.topbar nav { display:flex; align-items:center; gap:14px; flex-wrap:wrap; }
+.who { font-weight:600; }
+.langs a { margin-left:6px; font-size:13px; color:#6B7A99; }
+.langs a.on { color: var(--navy); font-weight:700; }
+.hero h1 { margin:0 0 4px; font-size:28px; }
+.split { display:grid; grid-template-columns: minmax(300px, 420px) 1fr; gap:20px; align-items:start; margin-top:16px; }
+@media (max-width: 860px) { .split { grid-template-columns: 1fr; } }
+.card, .search-card { background:#fff; border:1px solid var(--line); border-radius:14px; padding:18px; margin-bottom:16px; }
+.card.narrow { max-width:420px; margin: 24px auto; }
+label { display:block; font-size:14px; font-weight:600; margin-bottom:12px; }
+label.inline { display:inline-block; font-weight:400; margin-right:12px; }
+input[type=text], input[type=time], input[type=password], input:not([type]), select, textarea { display:block; width:100%; margin-top:4px; padding:9px 10px; border:1px solid var(--line); border-radius:8px; font:inherit; background:#fff; }
+textarea { min-height:80px; }
+.row { display:grid; grid-template-columns: 1fr 1fr; gap:12px; }
+fieldset { border:0; padding:0; margin:0 0 12px; }
+legend { font-size:14px; font-weight:600; margin-bottom:6px; }
+.chips { display:flex; flex-wrap:wrap; gap:6px; }
+.chip { margin:0; font-weight:400; }
+.chip input { display:none; }
+.chip span { display:inline-block; padding:5px 11px; border:1px solid var(--line); border-radius:999px; cursor:pointer; font-size:13px; }
+.chip input:checked + span { background: var(--blue); border-color: var(--blue); color:#fff; }
+.btn { display:inline-block; background: var(--blue); color:#fff; border:0; border-radius:10px; padding:10px 18px; font:inherit; font-weight:700; cursor:pointer; }
+.btn:hover { background: var(--navy); text-decoration:none; }
+.btn.small { padding:6px 12px; font-size:14px; color:#fff; }
+.btn.ghost { background: var(--pale); color: var(--navy); }
+.map { height: 380px; border-radius:14px; border:1px solid var(--line); margin-bottom:16px; }
+.results { list-style:none; padding:0; margin:0; }
+.result { display:flex; align-items:center; gap:12px; background:#fff; border:1px solid var(--line); border-radius:12px; padding:12px 14px; margin-bottom:8px; color: var(--navy); }
+.result:hover { border-color: var(--sky); text-decoration:none; }
+.result .body { flex:1; display:flex; flex-direction:column; }
+.rank, .pin { display:inline-flex; align-items:center; justify-content:center; width:28px; height:28px; border-radius:50%; background: var(--navy); color:#fff; font-weight:700; font-size:13px; }
+.score { font-size:20px; font-weight:800; color: var(--blue); text-align:right; display:flex; flex-direction:column; }
+.score small { font-size:12px; font-weight:600; }
+.tag { display:inline-block; background: var(--pale); border-radius:6px; padding:2px 8px; font-size:12px; margin:0 4px 4px 0; }
+.tag.warn { background:#FBE9E5; color: var(--warn); }
+.excluded { padding-left:18px; margin:0; }
+.facts { display:grid; grid-template-columns: max-content 1fr; gap:6px 14px; margin:12px 0; }
+.facts dt { font-weight:600; color:#6B7A99; }
+.facts dd { margin:0; }
+.scores { width:100%; border-collapse:collapse; font-size:14px; }
+.scores th, .scores td { text-align:left; padding:7px 6px; border-bottom:1px solid var(--line); }
+.scores td:not(:first-child), .scores th:not(:first-child) { text-align:right; }
+.scores tr.off td { color:#A3AEC4; }
+.scores tfoot th { font-size:16px; }
+.reviews { list-style:none; padding:0; }
+.reviews li { border-top:1px solid var(--line); padding:10px 0; }
+.reviews p { margin:4px 0 0; }
+.review-form { background: var(--pale); border-radius:12px; padding:12px; margin:12px 0; }
+.review-form h3 { margin-top:0; }
+.muted { color:#6B7A99; }
+.small { font-size:13px; }
+.error { color: var(--warn); font-weight:600; }
+.kpis { display:grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap:12px; margin:16px 0; }
+.kpi { background:#fff; border:1px solid var(--line); border-radius:14px; padding:16px; display:flex; flex-direction:column; }
+.kpi span { color:#6B7A99; font-size:14px; }
+.kpi strong { font-size:28px; }
+.bars { display:flex; align-items:flex-end; gap:8px; height:180px; }
+.bar { flex:1; display:flex; flex-direction:column; align-items:center; justify-content:flex-end; height:100%; font-size:12px; }
+.bar .fill { width:100%; background: var(--sky); border-radius:6px 6px 0 0; min-height:2px; }
+.bar small { color:#6B7A99; }
+footer { text-align:center; font-size:12px; color:#6B7A99; padding:20px; border-top:1px solid var(--line); background:#fff; }
+.leaflet-div-icon.pin-wrap { background:none; border:0; }

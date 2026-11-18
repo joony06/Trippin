@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html lang="{{ lang }}">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{% block title %}Trippin{% endblock %} · Trippin</title>
+  <link rel="icon" type="image/png" href="/favicon.png">
+  <link rel="apple-touch-icon" href="/apple-touch-icon.png">
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+  <link rel="stylesheet" href="/style.css">
+</head>
+<body>
+  <header class="topbar">
+    <a href="{{ url_for('index') }}" class="brand"><img src="/logo-wordmark.png" alt="Trippin"></a>
+    <nav>
+      <a href="{{ url_for('index') }}">{{ t('nav_search') }}</a>
+      {% if user %}
+        {% if user.role == 'owner' %}<a href="{{ url_for('dashboard') }}">{{ t('nav_dashboard') }}</a>{% endif %}
+        <span class="who">{{ user.username }}</span>
+        <a href="{{ url_for('logout') }}">{{ t('nav_logout') }}</a>
+      {% else %}
+        <a href="{{ url_for('login') }}">{{ t('nav_login') }}</a>
+        <a href="{{ url_for('signup') }}" class="btn small">{{ t('nav_signup') }}</a>
+      {% endif %}
+      <span class="langs">
+        {% for code, label in LANGS.items() %}
+          <a href="{{ url_for('set_lang', code=code) }}" class="{{ 'on' if code == lang }}">{{ label }}</a>
+        {% endfor %}
+      </span>
+    </nav>
+  </header>
+  <main>{% block content %}{% endblock %}</main>
+  <footer>{{ t('footer') }} · <span class="muted">{{ t('sample_notice') }}</span></footer>
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+  <script src="/map.js"></script>
+</body>
+</html>

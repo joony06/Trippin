@@ -1,0 +1,11 @@
+{% extends "base.html" %}
+{% block content %}
+<section class="hero">
+  <h1>{{ t('search_title') }}</h1>
+  <p class="muted">{{ t('tagline') }}</p>
+</section>
+<div class="split">
+  {% include "_search_form.html" %}
+  {% include "_map.html" %}
+</div>
+{% endblock %}
