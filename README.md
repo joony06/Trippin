@@ -3,7 +3,7 @@
 </p>
 
 <p align="center">
-  <b>English</b> | <a href="README.ko.md">한국어</a>
+  <b>English</b> | <a href="README.ko.md">Korean</a>
 </p>
 
 <p align="center">
