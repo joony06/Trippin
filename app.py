@@ -3,6 +3,7 @@
 # 버전 기록
 # v0.1 (2026-11-18) Vercel 배포 확인용 최소 Flask 앱 생성 (메인 페이지 + 상태 확인 경로)
 # v0.2 (2026-11-18) 로고·파비콘 적용, 로컬 실행 시 public/ 폴더를 정적 파일로 제공 (Vercel에서는 CDN이 제공)
+# v0.3 (2026-11-18) Vercel 빌드 실패 수정: app = Flask(...) 를 if 문 밖 최상위 한 줄로 정의
 
 import os
 
@@ -12,10 +13,11 @@ from flask import Flask
 # 로컬(flask run)에서만 public/ 를 루트 경로(/logo.png 등)로 제공해 배포 환경과 주소를 맞춘다.
 ON_VERCEL = os.environ.get("VERCEL") == "1"
 
-if ON_VERCEL:
-    app = Flask(__name__, static_folder=None)
-else:
-    app = Flask(__name__, static_folder="public", static_url_path="")
+app = Flask(
+    __name__,
+    static_folder=None if ON_VERCEL else "public",
+    static_url_path="",
+)
 
 app.config["SECRET_KEY"] = os.environ.get("SECRET_KEY", "dev-only-secret")
 
