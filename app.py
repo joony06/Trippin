@@ -9,9 +9,11 @@
 # v0.6 (2026-11-18) 첫 화면 지도·사업자 가게 선택에서 대형 프랜차이즈도 제외
 # v0.7 (2026-11-19) 현재 위치 반영: 검색 폼의 숨은 칸 lat·lng → 출발점 (중구 밖·거부 시 기본 위치), 지도에 출발점 전달
 # v0.8 (2026-11-19) 네이버 지도: 환경 변수 NAVER_MAP_CLIENT_ID를 템플릿에 내려줌 (없으면 지도는 OSM으로 자동 전환)
+# v0.9 (2026-11-19) 결과 화면: 동네별 개수 요약·동네 필터(dong, 결과 목록에서 거름)·카테고리 칩(조건 유지하고 카테고리만 바꿔 재검색)
 
 import os
 import re
+from collections import Counter
 from functools import wraps
 
 from flask import (Flask, abort, flash, g, redirect, render_template, request,
@@ -103,9 +105,26 @@ def parse_conditions(args):
     )
 
 
+def parse_dong(args):
+    """동네 필터(dong 파라미터). 검색 로직(core/search.py)은 그대로 두고, 순위가 정해진 결과 목록에서만 거른다."""
+    return (args.get("dong") or "").strip() or None
+
+
+def dong_counts(ranked):
+    """결과 목록의 동네별 개수 (많은 순). 동네 정보가 없는 곳은 세지 않는다."""
+    return Counter(p["dong"] for p in ranked if p.get("dong")).most_common()
+
+
+def search_url(args, **changes):
+    """지금 검색 조건(args)에서 일부만 바꾼 검색 주소. 값이 None이면 그 조건을 뺀다."""
+    out = {k: v for k, v in args.items() if k not in changes}
+    out.update({k: v for k, v in changes.items() if v is not None})
+    return url_for("search_view", **out)
+
+
 def search_args():
     """결과 → 상세로 넘어갈 때 검색 조건을 그대로 넘기기 위한 값"""
-    keys = ["q", "dist", "budget", "day", "time", "lat", "lng"]
+    keys = ["q", "dist", "budget", "day", "time", "lat", "lng", "dong"]
     out = {k: request.args.get(k) for k in keys if request.args.get(k)}
     if request.args.getlist("cat"):
         out["cat"] = request.args.getlist("cat")
@@ -134,9 +153,23 @@ def index():
 def search_view():
     cond = parse_conditions(request.args)
     ranked, excluded = search(db.all_places_with_stats(), cond, site_avg=db.site_average())
+    args = search_args()
+
+    # 동네별 요약은 동네로 거르기 전 전체 결과 기준 (다른 동네로 바로 옮겨 갈 수 있게)
+    dong = parse_dong(request.args)
+    dong_links = [(d, n, search_url(args, dong=d)) for d, n in dong_counts(ranked)]
+    if dong:
+        # 순위·다양성 보정은 전체 결과 기준 그대로 두고 그 동네만 남긴다 (순위 번호도 전체 기준)
+        ranked = [p for p in ranked if p.get("dong") == dong]
+
+    # 카테고리 칩: 다른 조건은 그대로 두고 카테고리만 하나로 바꿔 다시 검색
+    cat_links = [(c, search_url(args, cat=[c])) for c in CATEGORIES]
+
     shown = ranked[:RESULT_LIMIT]
     return render_template("results.html", cond=cond, ranked=shown, total=len(ranked),
-                           excluded=excluded, points=map_points(shown, "map"), args=search_args(),
+                           excluded=excluded, points=map_points(shown, "map"), args=args,
+                           dong=dong, dong_links=dong_links, dong_all_url=search_url(args, dong=None),
+                           cat_links=cat_links, cat_all_url=search_url(args, cat=None),
                            distance_options=DISTANCE_OPTIONS, budget_options=BUDGET_OPTIONS)
 
 
