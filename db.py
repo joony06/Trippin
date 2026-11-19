@@ -4,6 +4,7 @@
 # v0.1 (2026-11-18) 테이블 생성(장소·회원·리뷰·찜·조회 기록), 샘플 데이터 적재, 조회·저장 함수 작성
 # v0.2 (2026-11-18) 실제 데이터(data/places.json)가 있으면 샘플 대신 적재, 장소에 영문 이름·동·주소·사진·출처 열 추가
 # v0.3 (2026-11-18) 대형 프랜차이즈 여부(is_franchise) 열 추가
+# v0.4 (2026-11-19) 영문 설명문(description_en) 열 추가
 #
 # 저장 위치
 # - 로컬: 프로젝트 폴더의 trippin.db (환경 변수 TRIPPIN_DB로 바꿀 수 있음)
@@ -32,6 +33,7 @@ CREATE TABLE IF NOT EXISTS places (
     name TEXT NOT NULL,
     categories TEXT NOT NULL,          -- JSON 목록, 첫 번째가 대표 카테고리
     description TEXT,
+    description_en TEXT,               -- Gemini 영문 설명 (관광공사 장소)
     lat REAL NOT NULL,
     lng REAL NOT NULL,
     fee INTEGER DEFAULT 0,
@@ -110,12 +112,12 @@ def load_places(conn, path):
     for p in data["places"]:
         conn.execute(
             """INSERT OR REPLACE INTO places
-               (id, name, categories, description, lat, lng, fee, hours,
+               (id, name, categories, description, description_en, lat, lng, fee, hours,
                 is_conglomerate, is_franchise, google_rating, google_reviews,
                 name_en, dong, address, image, source)
-               VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
+               VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
             (p["id"], p["name"], json.dumps(p["categories"], ensure_ascii=False),
-             p.get("description"), p["lat"], p["lng"], p.get("fee", 0),
+             p.get("description"), p.get("description_en"), p["lat"], p["lng"], p.get("fee", 0),
              json.dumps(p.get("hours")) if p.get("hours") is not None else None,
              int(p.get("is_conglomerate", False)), int(p.get("is_franchise", False)),
              p.get("google_rating"),

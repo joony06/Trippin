@@ -10,7 +10,7 @@
       <h1>{{ place.name }}</h1>
       {% if place.name_en and lang != 'ko' %}<p class="muted">{{ place.name_en }}</p>{% endif %}
       <p>{% for c in place.categories %}<span class="tag">{{ t('cat_' ~ c) }}</span>{% endfor %}</p>
-      {% if place.description %}<p>{{ place.description }}</p>{% endif %}
+      {% if lang != 'ko' and place.description_en %}<p>{{ place.description_en }}</p>{% elif place.description %}<p>{{ place.description }}</p>{% endif %}
       {% if place.address %}<p class="small muted">{{ place.address }}</p>{% endif %}
       <dl class="facts">
         <dt>{{ t('fee') }}</dt><dd>{{ t('free') if not place.fee else '{:,}'.format(place.fee) ~ ' ' ~ t('won') }}</dd>
