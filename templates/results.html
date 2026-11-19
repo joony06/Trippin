@@ -17,8 +17,23 @@
     {% endif %}
   </div>
   <div>
+    {# 카테고리 칩: 누르면 다른 조건은 그대로, 카테고리만 바꿔 다시 검색 #}
+    <nav class="chips cat-chips">
+      <a class="tag" href="{{ cat_all_url }}">{% if not cond.categories %}<strong>{{ t('cat_all') }}</strong>{% else %}{{ t('cat_all') }}{% endif %}</a>
+      {% for c, url in cat_links %}
+        <a class="tag" href="{{ url }}">{% if cond.categories == [c] %}<strong>{{ t('cat_' ~ c) }}</strong>{% else %}{{ t('cat_' ~ c) }}{% endif %}</a>
+      {% endfor %}
+    </nav>
     {% include "_map.html" %}
     <h2>{{ t('results_count', n=total) }}</h2>
+    {# 동네별 요약: 누르면 그 동네 결과만 보기 #}
+    {% if dong_links %}
+    <p class="small dong-summary">{{ t('dong_summary') }}:
+      <a href="{{ dong_all_url }}">{% if not dong %}<strong>{{ t('dong_all') }}</strong>{% else %}{{ t('dong_all') }}{% endif %}</a>
+      {% for d, n, url in dong_links %} · <a href="{{ url }}">{% if d == dong %}<strong>{{ t('dong_count', dong=d, n=n) }}</strong>{% else %}{{ t('dong_count', dong=d, n=n) }}{% endif %}</a>{% endfor %}
+    </p>
+    {% endif %}
+    {% if dong %}<p class="muted small">{{ t('dong_filter_note', dong=dong) }}</p>{% endif %}
     {% if total > ranked|length %}<p class="muted small">{{ t('showing_top', n=ranked|length) }}</p>{% endif %}
     {% if not ranked %}<p class="muted">{{ t('no_results') }}</p>{% endif %}
     <ol class="results">
