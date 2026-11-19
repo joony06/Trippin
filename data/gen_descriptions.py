@@ -2,6 +2,7 @@
 #
 # 버전 기록
 # v0.1 (2026-11-19) 관광공사 개요(overview)를 바탕으로 한·영 2문장 설명문 생성, data/descriptions.json에 캐시
+# v0.2 (2026-11-19) 기본 모델을 gemini-3.8-flash로 변경 (2.5-flash는 새 사용자에게 막힘)
 #
 # 실행 (프로젝트 루트에서, .env에 GEMINI_API_KEY 필요):
 #   python data/collect_tour.py --detail       # 먼저: 장소별 개요 수집 (data/raw/tour_overview.json)
@@ -10,7 +11,7 @@
 # 결과: data/descriptions.json (저장소에 올림) → build_places.py가 읽어서 places.json에 합침
 #
 # 원칙: 관광공사 개요에 있는 내용만 요약한다. 개요가 없는 곳은 만들지 않는다 (지어낸 설명 방지).
-# 모델은 환경 변수 GEMINI_MODEL로 바꿀 수 있다 (기본 gemini-2.5-flash). 404가 나면 AI Studio에서 쓸 수 있는 Flash 모델 이름을 넣는다.
+# 모델은 환경 변수 GEMINI_MODEL로 바꿀 수 있다 (기본 gemini-3.8-flash). 404가 나면 AI Studio에서 쓸 수 있는 Flash 모델 이름을 넣는다.
 
 import argparse
 import json
@@ -87,7 +88,7 @@ def main():
     key = os.environ.get("GEMINI_API_KEY")
     if not key:
         sys.exit(".env 파일에 GEMINI_API_KEY=... 를 넣어 주세요.")
-    model = os.environ.get("GEMINI_MODEL", "gemini-2.5-flash")
+    model = os.environ.get("GEMINI_MODEL", "gemini-3.8-flash")
     if not os.path.exists(OVERVIEW):
         sys.exit("먼저 python data/collect_tour.py --detail 로 개요를 받아 주세요.")
 

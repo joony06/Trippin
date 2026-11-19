@@ -2,6 +2,7 @@
 #
 # 버전 기록
 # v0.1 (2026-11-19) 관광공사 장소 + 카테고리별 점수 상위 후보를 Text Search로 찾아 평점·리뷰 수·영업시간 수집, 캐시·한도·매칭 검증
+# v0.2 (2026-11-19) 캐시에 검색 결과 원본을 저장(매칭 기준을 바꿔도 다시 요청 안 함), 이름 기준 0.75로 강화, 이름이 같으면 800m까지 허용(공원·테마파크)
 #
 # 실행 (프로젝트 루트에서, .env에 GOOGLE_PLACES_KEY 필요):
 #   python data/collect_google.py --limit 5     # 시험: 5곳만 요청하고 결과를 화면에 보여 줌
@@ -38,7 +39,8 @@ CACHE = os.path.join(RAW_DIR, "google_raw.json")
 PLACES = os.path.join(ROOT, "data", "places.json")
 
 MATCH_MAX_M = 150          # 좌표가 이 거리(m) 안이어야 같은 곳으로 본다
-MATCH_MIN_NAME = 0.5       # 이름 유사도 (0~1). 한쪽이 다른 쪽을 포함하면 통과
+MATCH_MAX_M_SAME_NAME = 800  # 이름이 같으면(공원·테마파크처럼 넓은 곳) 이 거리까지 허용
+MATCH_MIN_NAME = 0.75      # 이름 유사도 (0~1). 한쪽이 다른 쪽을 포함하면 1.0
 TOP_PER_CATEGORY = 60      # 카테고리별 점수 상위 몇 곳을 후보로 할지
 MAX_TARGETS = 850          # 전체 대상 상한 (무료 1,000건 안에서 시험 요청 여유를 남김)
 CATEGORIES = ["역사", "자연", "음식", "카페", "사진명소", "야경", "쇼핑", "문화", "액티비티", "가족"]
@@ -125,7 +127,8 @@ def best_match(p, result):
         d = meters(p["lat"], p["lng"], loc["latitude"], loc["longitude"])
         a, b = norm(p["name"]), norm((c.get("displayName") or {}).get("text"))
         sim = 1.0 if (a and b and (a in b or b in a)) else difflib.SequenceMatcher(None, a, b).ratio()
-        if d <= MATCH_MAX_M and sim >= MATCH_MIN_NAME:
+        limit = MATCH_MAX_M_SAME_NAME if sim >= 0.95 else MATCH_MAX_M
+        if d <= limit and sim >= MATCH_MIN_NAME:
             score = sim - d / 1000
             if best is None or score > best[0]:
                 best = (score, c, d, sim)
@@ -183,6 +186,8 @@ def main():
     if os.path.exists(CACHE):
         with open(CACHE, encoding="utf-8") as f:
             cache = json.load(f)
+    # 옛 형식(매칭 결과만 저장한 v0.1)은 다시 받는다
+    cache = {k: v for k, v in cache.items() if isinstance(v, dict) and "places" in v}
     todo = [p for p in targets if place_key(p) not in cache]
     tour_n = sum(1 for p in targets if p.get("source") == "tour")
     print(f"대상 {len(targets)}곳 (관광공사 {tour_n} + 상위 후보 {len(targets) - tour_n}) · "
@@ -198,8 +203,9 @@ def main():
     os.makedirs(RAW_DIR, exist_ok=True)
     matched = 0
     for i, p in enumerate(todo[:args.limit], start=1):
-        m = best_match(p, request(key, p))
-        cache[place_key(p)] = m  # 못 찾은 곳도 None으로 저장해서 다시 요청하지 않음
+        raw = request(key, p)
+        cache[place_key(p)] = {"places": raw.get("places", [])}  # 원본 저장 (못 찾은 곳도 저장해서 다시 요청하지 않음)
+        m = best_match(p, raw)
         matched += m is not None
         if args.limit <= 10:
             print(f"  {p['name']} → {m['google_name'] + ' ★' + str(m['rating']) + ' (' + str(m['reviews']) + ')' if m else '매칭 안 됨 (중립값)'}")

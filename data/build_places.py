@@ -6,6 +6,7 @@
 # v0.3 (2026-11-18) 관광객이 갈 수 없는 곳 제외: 구내식당 업종, 상호에 기관·단체 단어(상조회·협의회 등)가 든 곳
 # v0.4 (2026-11-18) 빵/도넛·떡/한과·아이스크림/빙수는 카테고리를 [카페, 음식]으로 (카페로 찾아도 S1 점수를 받도록)
 # v0.5 (2026-11-19) Gemini 설명문(data/descriptions.json)과 구글 평점·리뷰 수·영업시간(data/raw/google_raw.json) 합치기
+# v0.6 (2026-11-19) 구글 캐시가 검색 결과 원본이 되어, 매칭은 collect_google.best_match로 여기서 판정
 #
 # 실행 (프로젝트 루트에서, collect_sbiz.py·collect_tour.py를 먼저 실행):
 #   python data/build_places.py
@@ -18,8 +19,10 @@ import json
 import math
 import os
 import re
+import sys
 
 HERE = os.path.dirname(os.path.abspath(__file__))
+sys.path.insert(0, HERE)
 RAW = os.path.join(HERE, "raw")
 OUT = os.path.join(HERE, "places.json")
 BRANDS = os.path.join(HERE, "conglomerate_brands.txt")
@@ -137,6 +140,7 @@ def is_franchise(name, big):
 
 
 def merge_extras(places):
+    from collect_google import best_match  # 같은 폴더의 스크립트 (매칭 기준을 한 곳에서 관리)
     """설명문과 구글 데이터를 합친다. 파일이 없으면 건너뛴다. (설명문 수, 구글 매칭 수)"""
     descs, google = {}, {}
     if os.path.exists(DESCRIPTIONS):
@@ -151,7 +155,8 @@ def merge_extras(places):
         if d:
             p["description"], p["description_en"] = d.get("ko"), d.get("en")
             n_desc += 1
-        g = google.get(f"{p['source']}:{p.get('source_id')}")
+        raw = google.get(f"{p['source']}:{p.get('source_id')}")
+        g = best_match(p, raw) if isinstance(raw, dict) and "places" in raw else None
         if g:
             p["google_rating"], p["google_reviews"] = g.get("rating"), g.get("reviews")
             if g.get("hours"):
