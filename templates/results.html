@@ -9,7 +9,7 @@
       <h3>{{ t('excluded_title') }} ({{ excluded|length }})</h3>
       <ul class="excluded">
         {% for p, reasons in excluded[:20] %}
-          <li>{{ p.name }} — {% for r in reasons %}<span class="tag warn">{{ t('reason_' ~ r) }}</span>{% endfor %}</li>
+          <li>{{ p.name_en if lang != 'ko' and p.name_en else p.name }} — {% for r in reasons %}<span class="tag warn">{{ t('reason_' ~ r) }}</span>{% endfor %}</li>
         {% endfor %}
       </ul>
       {% if excluded|length > 20 %}<p class="muted small">… +{{ excluded|length - 20 }}</p>{% endif %}
@@ -27,7 +27,12 @@
         <a class="result" href="{{ url_for('place_detail', place_id=p.id, src='list', **args) }}">
           <span class="rank">{{ p.rank }}</span>
           <span class="body">
+            {# 한국어가 아니면 영문 이름(name_en)이 있을 때 먼저 보여 주고, 원래 이름은 작게 덧붙인다 #}
+            {% if lang != 'ko' and p.name_en %}
+            <strong>{{ p.name_en }}</strong> <span class="muted small">{{ p.name }}</span>
+            {% else %}
             <strong>{{ p.name }}</strong>
+            {% endif %}
             <span class="muted small">{% for c in p.categories %}{{ t('cat_' ~ c) }}{{ ' · ' if not loop.last }}{% endfor %} · {{ '%.1f'|format(p.distance_km) }} km</span>
           </span>
           <span class="score">
