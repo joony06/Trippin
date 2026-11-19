@@ -1,5 +1,9 @@
 <form class="search-card" action="{{ url_for('search_view') }}" method="get">
-  <p class="muted small">{{ t('origin_note') }}</p>
+  {# 현재 위치: 브라우저 위치를 숨은 칸 lat, lng에 넣어 보낸다. 대전 중구 밖이거나 못 받으면 서버가 기본 위치를 쓴다 #}
+  {% set origin_keys = {'current': 'origin_current', 'outside': 'origin_outside'} %}
+  <p class="muted small" id="origin-note" data-state="{{ origin_state }}" data-located="{{ t('origin_located') }}">{{ t(origin_keys.get(origin_state, 'origin_note')) }}</p>
+  <input type="hidden" name="lat" id="origin-lat" value="{{ request.args.get('lat', '') if origin_state != 'default' }}">
+  <input type="hidden" name="lng" id="origin-lng" value="{{ request.args.get('lng', '') if origin_state != 'default' }}">
   <label>{{ t('f_query') }}
     <input type="text" name="q" value="{{ cond.query }}" placeholder="{{ t('f_query_ph') }}">
   </label>
@@ -37,3 +41,16 @@
   </fieldset>
   <button type="submit" class="btn">{{ t('f_submit') }}</button>
 </form>
+<script>
+  // 브라우저 위치 받기 (localhost·HTTPS에서만 동작). 거부·실패하면 숨은 칸을 비워 두어 기본 위치로 계산된다
+  (function () {
+    if (!navigator.geolocation) return;
+    navigator.geolocation.getCurrentPosition(function (pos) {
+      document.getElementById("origin-lat").value = pos.coords.latitude.toFixed(6);
+      document.getElementById("origin-lng").value = pos.coords.longitude.toFixed(6);
+      var note = document.getElementById("origin-note");
+      if (note && note.dataset.state === "default") note.textContent = note.dataset.located;
+    }, function () { /* 거부·시간 초과: 기본 위치 유지 */ },
+    { enableHighAccuracy: false, timeout: 10000, maximumAge: 300000 });
+  })();
+</script>

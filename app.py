@@ -7,6 +7,7 @@
 # v0.4 (2026-11-18) MVP 뼈대: 필터링 검색·장소 상세(점수표)·리뷰·찜·회원가입/로그인·사업자 대시보드·다국어 연결
 # v0.5 (2026-11-18) 실제 데이터(수천 곳) 대응: 결과 목록·지도는 상위 30곳만, 첫 화면 지도는 관광공사 등록 장소만 표시
 # v0.6 (2026-11-18) 첫 화면 지도·사업자 가게 선택에서 대형 프랜차이즈도 제외
+# v0.7 (2026-11-19) 현재 위치 반영: 검색 폼의 숨은 칸 lat·lng → 출발점 (중구 밖·거부 시 기본 위치), 지도에 출발점 전달
 
 import os
 import re
@@ -17,6 +18,7 @@ from flask import (Flask, abort, flash, g, redirect, render_template, request,
 from werkzeug.security import check_password_hash, generate_password_hash
 
 import db
+from core.geo import resolve_origin
 from core.i18n import DEFAULT_LANG, LANGS, translate
 from core.reviews import DEFAULT_SITE_AVG, summarize
 from core.search import WEIGHTS, Conditions, search
@@ -56,8 +58,11 @@ def inject_helpers():
     def t(key, **kwargs):
         return translate(g.lang, key, **kwargs)
 
+    # 출발점은 모든 화면(검색 폼 문구·지도 출발점 표시)에서 같은 값을 쓴다
+    origin, origin_state = resolve_origin(request.args.get("lat"), request.args.get("lng"))
     return {"t": t, "lang": g.lang, "LANGS": LANGS, "user": g.user,
-            "CATEGORIES": CATEGORIES, "WEIGHTS": WEIGHTS}
+            "CATEGORIES": CATEGORIES, "WEIGHTS": WEIGHTS,
+            "origin": origin, "origin_state": origin_state}
 
 
 def login_required(view):
@@ -80,6 +85,8 @@ def parse_conditions(args):
     budget = to_int(args.get("budget"))
     day = to_int(args.get("day"))
     dist = to_int(args.get("dist")) or 5
+    # 브라우저 위치(숨은 칸 lat, lng). 대전 중구 밖이거나 없으면 기본 위치(대전 중구청 앞)
+    origin, _state = resolve_origin(args.get("lat"), args.get("lng"))
     return Conditions(
         categories=[c for c in args.getlist("cat") if c in CATEGORIES],
         query=(args.get("q") or "").strip(),
@@ -87,12 +94,13 @@ def parse_conditions(args):
         budget=budget,
         day=day if day is not None and 0 <= day <= 6 else None,
         time=args.get("time") if re.fullmatch(r"([01]\d|2[0-3]):[0-5]\d", args.get("time") or "") else None,
+        origin=origin,
     )
 
 
 def search_args():
     """결과 → 상세로 넘어갈 때 검색 조건을 그대로 넘기기 위한 값"""
-    keys = ["q", "dist", "budget", "day", "time"]
+    keys = ["q", "dist", "budget", "day", "time", "lat", "lng"]
     out = {k: request.args.get(k) for k in keys if request.args.get(k)}
     if request.args.getlist("cat"):
         out["cat"] = request.args.getlist("cat")

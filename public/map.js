@@ -1,14 +1,17 @@
 // 트립핀 지도 (Leaflet + OpenStreetMap)
 // 버전 기록
 // v0.1 (2026-11-18) 장소 마커 표시, 순위 번호 마커, 마커 클릭 시 상세로 이동(유입 경로 map)
+// v0.2 (2026-11-19) 출발점을 #map-data의 origin에서 읽음 (현재 위치 반영). 형식: {"origin": [위도, 경도], "points": [...]}
 // 네이버 지도로 바꿀 때는 이 파일만 교체하면 된다. 데이터는 #map-data(JSON)에서 읽는다.
 (function () {
   var el = document.getElementById("map");
   var dataEl = document.getElementById("map-data");
   if (!el || !dataEl || typeof L === "undefined") return;
 
-  var points = JSON.parse(dataEl.textContent || "[]");
-  var origin = [36.3256, 127.4213]; // 대전 중구청 앞 (MVP 고정 위치)
+  var data = JSON.parse(dataEl.textContent || "{}");
+  // 예전 형식(장소 배열만)도 읽을 수 있게 둔다
+  var points = Array.isArray(data) ? data : (data.points || []);
+  var origin = (data && data.origin) || [36.3256, 127.4213]; // 없으면 대전 중구청 앞
   var map = L.map(el).setView(origin, 14);
   L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
     maxZoom: 19,

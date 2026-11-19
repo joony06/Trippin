@@ -4,11 +4,13 @@
 # v0.1 (2026-11-18) 보고서 예시 A 67.6점·B 46.3점 재현, 하드 필터·다양성 보정·베이지안 보정 테스트 작성
 # v0.2 (2026-11-18) 빨라진 다양성 보정이 '하나씩 다시 비교하는' 원래 방식과 같은 순서를 내는지 확인하는 테스트 추가
 # v0.3 (2026-11-18) 대형 프랜차이즈 하드 필터 테스트 추가
+# v0.4 (2026-11-19) 현재 위치(출발점) 테스트 추가: 중구 안이면 사용, 밖·거부·잘못된 값이면 기본 위치
 #
 # 실행: python -m pytest -q
 
 import math
 
+from core import geo
 from core import search as s
 from core.reviews import bayesian_rating, summarize
 
@@ -132,3 +134,33 @@ def test_franchise_is_excluded():
     kept, excluded = s.hard_filter([chain, local], cond)
     assert [p["name"] for p in kept] == ["동네 카페"]
     assert excluded[0][1] == ["franchise"]
+
+
+def test_origin_inside_jung_gu_is_used():
+    # 대전 중구 안(으능정이 거리 부근)이면 브라우저 위치를 그대로 쓴다
+    origin, state = geo.resolve_origin("36.3290", "127.4270")
+    assert origin == (36.329, 127.427) and state == geo.ORIGIN_CURRENT
+
+
+def test_origin_outside_or_missing_falls_back_to_default():
+    # 서울(시연 장소)처럼 중구 밖이면 기본 위치
+    assert geo.resolve_origin("37.5665", "126.9780") == (geo.DEFAULT_ORIGIN, geo.ORIGIN_OUTSIDE)
+    # 위치를 거부해 값이 비었거나, 잘못된 값이면 기본 위치
+    for lat, lng in [(None, None), ("", ""), ("36.33", None), ("abc", "127.4"),
+                     ("nan", "127.4"), ("inf", "127.4"), ("100", "127.4")]:
+        assert geo.resolve_origin(lat, lng) == (geo.DEFAULT_ORIGIN, geo.ORIGIN_DEFAULT)
+
+
+def test_default_origin_is_inside_service_area():
+    assert geo.in_service_area(*geo.DEFAULT_ORIGIN)
+
+
+def test_search_measures_distance_from_origin():
+    # 같은 장소라도 출발점이 바뀌면 거리(하드 필터·S3)가 바뀐다
+    place = _place("은행동 가게", ["음식"], "", None, None, lat=36.3290, lng=127.4270)
+    near = s.Conditions(max_km=1, origin=(36.3290, 127.4270))
+    far = s.Conditions(max_km=1, origin=(36.2700, 127.4000))
+    kept, _ = s.hard_filter([place], near)
+    assert len(kept) == 1 and kept[0]["distance_km"] < 0.01
+    kept, excluded = s.hard_filter([place], far)
+    assert not kept and excluded[0][1] == ["distance"]
