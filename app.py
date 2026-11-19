@@ -8,6 +8,7 @@
 # v0.5 (2026-11-18) 실제 데이터(수천 곳) 대응: 결과 목록·지도는 상위 30곳만, 첫 화면 지도는 관광공사 등록 장소만 표시
 # v0.6 (2026-11-18) 첫 화면 지도·사업자 가게 선택에서 대형 프랜차이즈도 제외
 # v0.7 (2026-11-19) 현재 위치 반영: 검색 폼의 숨은 칸 lat·lng → 출발점 (중구 밖·거부 시 기본 위치), 지도에 출발점 전달
+# v0.8 (2026-11-19) 네이버 지도: 환경 변수 NAVER_MAP_CLIENT_ID를 템플릿에 내려줌 (없으면 지도는 OSM으로 자동 전환)
 
 import os
 import re
@@ -34,6 +35,9 @@ app = Flask(
 )
 
 app.config["SECRET_KEY"] = os.environ.get("SECRET_KEY", "dev-only-secret")
+
+# 네이버 지도 Client ID (환경 변수로만 받는다. 비어 있으면 지도는 Leaflet + OpenStreetMap)
+NAVER_MAP_CLIENT_ID = (os.environ.get("NAVER_MAP_CLIENT_ID") or "").strip() or None
 
 CATEGORIES = ["역사", "자연", "음식", "카페", "사진명소", "야경", "쇼핑", "문화", "액티비티", "가족"]
 DISTANCE_OPTIONS = [1, 2, 5, 10]
@@ -62,7 +66,8 @@ def inject_helpers():
     origin, origin_state = resolve_origin(request.args.get("lat"), request.args.get("lng"))
     return {"t": t, "lang": g.lang, "LANGS": LANGS, "user": g.user,
             "CATEGORIES": CATEGORIES, "WEIGHTS": WEIGHTS,
-            "origin": origin, "origin_state": origin_state}
+            "origin": origin, "origin_state": origin_state,
+            "naver_map_client_id": NAVER_MAP_CLIENT_ID}
 
 
 def login_required(view):

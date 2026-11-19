@@ -31,7 +31,10 @@
   </header>
   <main>{% block content %}{% endblock %}</main>
   <footer>{{ t('footer') }} · <span class="muted">{{ t('sample_notice') }}</span></footer>
+  {# 지도: 네이버 지도 키가 있으면 map.js가 네이버 지도를 불러오고, 없거나 실패하면 Leaflet(OSM)으로 그린다 #}
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+  <script>window.TRIPPIN_NAVER_MAP_KEY = {{ naver_map_client_id | tojson }};</script>
+  <script src="/map_leaflet.js"></script>
   <script src="/map.js"></script>
 </body>
 </html>
