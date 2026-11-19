@@ -3,6 +3,7 @@
 # 버전 기록
 # v0.1 (2026-11-19) 관광공사 개요(overview)를 바탕으로 한·영 2문장 설명문 생성, data/descriptions.json에 캐시
 # v0.2 (2026-11-19) 기본 모델을 gemini-3.8-flash로 변경 (2.5-flash는 새 사용자에게 막힘)
+# v0.3 (2026-11-19) 응답 대기 60초 → 180초, 시간 초과·연결 오류는 최대 3번 다시 시도하고 그래도 안 되면 그 장소만 건너뜀
 #
 # 실행 (프로젝트 루트에서, .env에 GEMINI_API_KEY 필요):
 #   python data/collect_tour.py --detail       # 먼저: 장소별 개요 수집 (data/raw/tour_overview.json)
@@ -17,6 +18,7 @@ import argparse
 import json
 import os
 import re
+import socket
 import sys
 import time
 import urllib.error
@@ -61,7 +63,7 @@ def generate(key, model, p, overview):
         headers={"Content-Type": "application/json", "x-goog-api-key": key})
     for attempt in range(3):
         try:
-            with urllib.request.urlopen(req, timeout=60) as res:
+            with urllib.request.urlopen(req, timeout=180) as res:
                 data = json.loads(res.read().decode("utf-8"))
             text = data["candidates"][0]["content"]["parts"][0]["text"]
             out = json.loads(text)
@@ -74,6 +76,11 @@ def generate(key, model, p, overview):
                 time.sleep(30)
                 continue
             sys.exit(f"HTTP {e.code} 오류: {msg[:500]}")
+        except (TimeoutError, socket.timeout, urllib.error.URLError) as e:
+            # 응답이 늦거나 연결이 끊기면 잠시 쉬고 다시 시도
+            print(f"  ({p['name']}: {type(e).__name__}, {attempt + 1}번째 실패 → 다시 시도)")
+            time.sleep(10)
+            continue
         except (KeyError, IndexError, json.JSONDecodeError):
             return None
     return None
@@ -109,6 +116,7 @@ def main():
         overview = clean(overviews.get(cid))
         if len(overview) < 20:
             continue  # 개요가 없으면 만들지 않는다
+        print(f"- {p['name']} 생성 중…", flush=True)
         d = generate(key, model, p, overview)
         if d:
             out[cid] = d
