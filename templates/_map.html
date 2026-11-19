@@ -1,2 +1,2 @@
 <div id="map" class="map"></div>
-<script type="application/json" id="map-data">{{ points | tojson }}</script>
+<script type="application/json" id="map-data">{{ {"origin": origin, "points": points} | tojson }}</script>
