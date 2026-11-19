@@ -5,6 +5,7 @@
 # v0.2 (2026-11-18) 대형 프랜차이즈 표시: 대전 전체에서 지점명이 붙은 같은 상호가 FRANCHISE_MIN_STORES곳 이상이면 is_franchise
 # v0.3 (2026-11-18) 관광객이 갈 수 없는 곳 제외: 구내식당 업종, 상호에 기관·단체 단어(상조회·협의회 등)가 든 곳
 # v0.4 (2026-11-18) 빵/도넛·떡/한과·아이스크림/빙수는 카테고리를 [카페, 음식]으로 (카페로 찾아도 S1 점수를 받도록)
+# v0.5 (2026-11-19) Gemini 설명문(data/descriptions.json)과 구글 평점·리뷰 수·영업시간(data/raw/google_raw.json) 합치기
 #
 # 실행 (프로젝트 루트에서, collect_sbiz.py·collect_tour.py를 먼저 실행):
 #   python data/build_places.py
@@ -22,6 +23,8 @@ HERE = os.path.dirname(os.path.abspath(__file__))
 RAW = os.path.join(HERE, "raw")
 OUT = os.path.join(HERE, "places.json")
 BRANDS = os.path.join(HERE, "conglomerate_brands.txt")
+DESCRIPTIONS = os.path.join(HERE, "descriptions.json")   # gen_descriptions.py 결과 (저장소에 올림)
+GOOGLE = os.path.join(RAW, "google_raw.json")             # collect_google.py 결과 (저장소에 안 올림)
 
 # 대형 프랜차이즈 기준: 대전 전체에서 '지점명이 있는 같은 상호'가 이 수 이상이면 대형 프랜차이즈로 본다
 # (전국 가맹점 수 API는 가명정보 승인 절차가 필요해서, 대전 상가정보로 대신 센다)
@@ -133,6 +136,30 @@ def is_franchise(name, big):
     return n in big or any(n.startswith(b) for b in big if len(b) >= 3)
 
 
+def merge_extras(places):
+    """설명문과 구글 데이터를 합친다. 파일이 없으면 건너뛴다. (설명문 수, 구글 매칭 수)"""
+    descs, google = {}, {}
+    if os.path.exists(DESCRIPTIONS):
+        with open(DESCRIPTIONS, encoding="utf-8") as f:
+            descs = json.load(f)
+    if os.path.exists(GOOGLE):
+        with open(GOOGLE, encoding="utf-8") as f:
+            google = json.load(f)
+    n_desc = n_google = 0
+    for p in places:
+        d = descs.get(p.get("source_id")) if p["source"] == "tour" else None
+        if d:
+            p["description"], p["description_en"] = d.get("ko"), d.get("en")
+            n_desc += 1
+        g = google.get(f"{p['source']}:{p.get('source_id')}")
+        if g:
+            p["google_rating"], p["google_reviews"] = g.get("rating"), g.get("reviews")
+            if g.get("hours"):
+                p["hours"] = g["hours"]
+            n_google += 1
+    return n_desc, n_google
+
+
 def load(name):
     with open(os.path.join(RAW, name), encoding="utf-8") as f:
         return json.load(f)
@@ -232,6 +259,7 @@ def build():
 
     for i, p in enumerate(places, start=1):
         p["id"] = i
+    n_desc, n_google = merge_extras(places)
 
     out = {
         "_note": "data/build_places.py로 만든 파일. 출처: 소상공인시장진흥공단 상가(상권)정보, 한국관광공사 TourAPI. "
@@ -246,6 +274,7 @@ def build():
           f"(겹쳐서 뺀 상가 {skipped_dup}곳, 기관·구내식당 제외 {skipped_org}곳, 대기업 계열 {sum(p['is_conglomerate'] for p in places)}곳, "
           f"대형 프랜차이즈 {sum(p['is_franchise'] and not p['is_conglomerate'] for p in places)}곳(브랜드 {len(big)}개 기준), "
           f"영문 이름 {sum(1 for p in places if p['name_en'])}곳)")
+    print(f"설명문 {n_desc}곳, 구글 평점·영업시간 {n_google}곳 합침")
     print(f"저장: {OUT}")
 
 
