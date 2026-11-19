@@ -4,11 +4,13 @@
 # v0.1 (2026-11-19) 관광공사 개요(overview)를 바탕으로 한·영 2문장 설명문 생성, data/descriptions.json에 캐시
 # v0.2 (2026-11-19) 기본 모델을 gemini-3.8-flash로 변경 (2.5-flash는 새 사용자에게 막힘)
 # v0.3 (2026-11-19) 응답 대기 60초 → 180초, 시간 초과·연결 오류는 최대 3번 다시 시도하고 그래도 안 되면 그 장소만 건너뜀
+# v0.4 (2026-11-19) 503(모델 혼잡)·500·429는 20·40·60·90초 쉬며 재시도, --list-models로 쓸 수 있는 모델 이름 확인
 #
 # 실행 (프로젝트 루트에서, .env에 GEMINI_API_KEY 필요):
 #   python data/collect_tour.py --detail       # 먼저: 장소별 개요 수집 (data/raw/tour_overview.json)
 #   python data/gen_descriptions.py --limit 3  # 시험: 3곳만 만들고 화면에 보여 줌
 #   python data/gen_descriptions.py            # 전체 (이미 만든 곳은 건너뜀, 무료 한도 때문에 천천히 진행)
+#   python data/gen_descriptions.py --list-models  # 이 키로 쓸 수 있는 Flash 모델 이름 보기
 # 결과: data/descriptions.json (저장소에 올림) → build_places.py가 읽어서 places.json에 합침
 #
 # 원칙: 관광공사 개요에 있는 내용만 요약한다. 개요가 없는 곳은 만들지 않는다 (지어낸 설명 방지).
@@ -61,7 +63,8 @@ def generate(key, model, p, overview):
     req = urllib.request.Request(
         API.format(model=model), data=json.dumps(body).encode("utf-8"), method="POST",
         headers={"Content-Type": "application/json", "x-goog-api-key": key})
-    for attempt in range(3):
+    waits = [20, 40, 60, 90]
+    for attempt in range(len(waits) + 1):
         try:
             with urllib.request.urlopen(req, timeout=180) as res:
                 data = json.loads(res.read().decode("utf-8"))
@@ -72,13 +75,16 @@ def generate(key, model, p, overview):
             return None
         except urllib.error.HTTPError as e:
             msg = e.read().decode("utf-8", "ignore")
-            if e.code == 429 and attempt < 2:  # 분당 한도 → 잠시 쉬고 다시
-                time.sleep(30)
+            if e.code in (429, 500, 503) and attempt < len(waits):  # 한도·모델 혼잡 → 잠시 쉬고 다시
+                print(f"  (HTTP {e.code}, {waits[attempt]}초 뒤 다시 시도)", flush=True)
+                time.sleep(waits[attempt])
                 continue
             sys.exit(f"HTTP {e.code} 오류: {msg[:500]}")
         except (TimeoutError, socket.timeout, urllib.error.URLError) as e:
             # 응답이 늦거나 연결이 끊기면 잠시 쉬고 다시 시도
-            print(f"  ({p['name']}: {type(e).__name__}, {attempt + 1}번째 실패 → 다시 시도)")
+            if attempt >= 2:
+                break
+            print(f"  ({p['name']}: {type(e).__name__}, {attempt + 1}번째 실패 → 다시 시도)", flush=True)
             time.sleep(10)
             continue
         except (KeyError, IndexError, json.JSONDecodeError):
@@ -89,6 +95,7 @@ def generate(key, model, p, overview):
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--limit", type=int, default=1000)
+    ap.add_argument("--list-models", action="store_true", help="쓸 수 있는 Flash 모델 이름 보기")
     args = ap.parse_args()
 
     load_env()
@@ -96,6 +103,16 @@ def main():
     if not key:
         sys.exit(".env 파일에 GEMINI_API_KEY=... 를 넣어 주세요.")
     model = os.environ.get("GEMINI_MODEL", "gemini-3.8-flash")
+    if args.list_models:
+        req = urllib.request.Request("https://generativelanguage.googleapis.com/v1beta/models?pageSize=200",
+                                     headers={"x-goog-api-key": key})
+        with urllib.request.urlopen(req, timeout=60) as res:
+            models = json.loads(res.read().decode("utf-8")).get("models", [])
+        for m in models:
+            if "flash" in m["name"] and "generateContent" in m.get("supportedGenerationMethods", []):
+                print(m["name"].replace("models/", ""))
+        return
+    print(f"모델: {model}")
     if not os.path.exists(OVERVIEW):
         sys.exit("먼저 python data/collect_tour.py --detail 로 개요를 받아 주세요.")
 
