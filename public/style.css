@@ -5,6 +5,7 @@
  *                   목록마다 점수 구성 막대(S1~S6), 핀은 로고의 물방울 모양, 글꼴 SUIT
  * v0.3 (2026-11-21) 로고 크게, 지도 로딩 화면, 하단(저작권·출처)을 모든 화면 맨 아래에 고정
  * v0.4 (2026-11-21) 로고 한 번 더 키움 (그림 여백을 잘라 34px = 이전보다 약 1.4배, 휴대폰 28px), 하단 두 줄(저작권 / 데이터 출처)
+ * v0.5 (2026-11-21) 지도 화면은 하단을 창에 고정하지 않고 왼쪽 패널 맨 아래로 (지도가 화면 끝까지)
  *
  * 색은 로고에서 가져온다: 남색(글자·핀), 파랑(행동 버튼), 하늘(현재 위치·선택), 연파랑(바탕 강조).
  * 강조색은 '행동(파랑)'과 '선택·위치(하늘)' 두 군데에만 쓴다.
@@ -102,7 +103,11 @@ legend { font-size: 13px; font-weight: 700; margin-bottom: 8px; }
 .tag.warn { background: #FBEAE6; color: var(--warn); }
 
 /* ---------------------------------------------------------------- 지도 화면 (첫 화면·결과) */
-.mapapp { display: grid; grid-template-columns: 420px 1fr; height: calc(100vh - var(--top) - var(--foot)); height: calc(100dvh - var(--top) - var(--foot)); }
+.mapapp { display: grid; grid-template-columns: 420px 1fr; height: calc(100vh - var(--top)); height: calc(100dvh - var(--top)); }
+.sheet { display: flex; flex-direction: column; }
+.sheet > * { flex-shrink: 0; }
+.sheet-foot { margin-top: auto; padding: 16px 20px 18px; border-top: 1px solid var(--hair); font-size: 11px; color: var(--mute); line-height: 1.5; display: flex; flex-direction: column; gap: 2px; }
+.sheet-foot .src { color: #8592AE; }
 .sheet { min-width: 0; overflow-y: auto; background: #fff; border-right: 1px solid var(--line); overscroll-behavior: contain; }
 .mapwrap { position: relative; min-width: 0; }
 .mapapp .map-box, .mapapp .map { height: 100%; }
