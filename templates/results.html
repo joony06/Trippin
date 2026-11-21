@@ -5,15 +5,16 @@
   <div>
     {% include "_search_form.html" %}
     {% if excluded %}
-    <section class="card">
-      <h3>{{ t('excluded_title') }} ({{ excluded|length }})</h3>
+    {# 제외된 곳은 기본으로 접어 둔다 (휴대폰에서 결과보다 위에 길게 나오지 않게). 누르면 펼쳐짐 #}
+    <details class="card">
+      <summary><strong>{{ t('excluded_title') }} ({{ excluded|length }})</strong></summary>
       <ul class="excluded">
         {% for p, reasons in excluded[:20] %}
           <li>{{ p.name_en if lang != 'ko' and p.name_en else p.name }} — {% for r in reasons %}<span class="tag warn">{{ t('reason_' ~ r) }}</span>{% endfor %}</li>
         {% endfor %}
       </ul>
       {% if excluded|length > 20 %}<p class="muted small">… +{{ excluded|length - 20 }}</p>{% endif %}
-    </section>
+    </details>
     {% endif %}
   </div>
   <div>

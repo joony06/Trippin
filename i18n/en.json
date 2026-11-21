@@ -59,7 +59,7 @@
  "contrib": "Weighted score",
  "total": "Total",
  "adjusted": "After diversity adjustment",
- "diversity_note": "{k} higher-ranked places share this main category, so the score was multiplied by 0.9^{k}.",
+ "diversity_note": "{n} higher-ranked places share this main category, so the score was multiplied by 0.9^{k} (at most 0.9³).",
  "not_used": "Not used",
  "neutral_note": "No Google data, so a neutral value of 0.5 was used.",
  "s1": "Category match",
@@ -129,5 +129,6 @@
  "photo_credit": "Photo: Korea Tourism Organization",
  "reason_franchise": "Large chain",
  "category_only_note": "Only places in the categories you chose are shown.",
- "no_info": "No information"
+ "no_info": "No information",
+ "own_place_note": "This is your own store, so you cannot review or save it, and your visits are not counted."
 }

@@ -59,7 +59,7 @@
  "contrib": "반영 점수",
  "total": "총점",
  "adjusted": "다양성 보정 후",
- "diversity_note": "같은 대표 카테고리가 위에 {k}곳 있어 0.9^{k}를 곱했어요.",
+ "diversity_note": "같은 대표 카테고리가 위에 {n}곳 있어 0.9^{k}를 곱했어요 (최대 0.9³).",
  "not_used": "사용 안 함",
  "neutral_note": "구글 데이터가 없어 중립값 0.5를 넣었어요.",
  "s1": "카테고리 일치도",
@@ -129,5 +129,6 @@
  "photo_credit": "사진: 한국관광공사",
  "reason_franchise": "대형 프랜차이즈",
  "category_only_note": "고른 카테고리에 맞는 장소만 보여 줘요.",
- "no_info": "정보 없음"
+ "no_info": "정보 없음",
+ "own_place_note": "내 가게라서 리뷰·찜은 남길 수 없어요. 조회수에도 넣지 않아요."
 }

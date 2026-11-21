@@ -6,6 +6,8 @@
 # v0.3 (2026-11-18) 대형 프랜차이즈 하드 필터 테스트 추가
 # v0.4 (2026-11-19) 현재 위치(출발점) 테스트 추가: 중구 안이면 사용, 밖·거부·잘못된 값이면 기본 위치
 # v0.5 (2026-11-21) 카테고리 하드 필터 테스트 추가: 고른 카테고리와 하나도 안 맞으면 제외, 안 고르면 모두 남김
+# v0.6 (2026-11-21) 다양성 보정 한도(0.9^3) 반영: 원래 방식 비교 함수에도 한도 적용, 한도 테스트 추가
+# v0.7 (2026-11-21) S6(리뷰 0개+찜)·S2(영문 검색어) 테스트 추가
 #
 # 실행: python -m pytest -q
 
@@ -103,11 +105,11 @@ def test_diversity_penalty():
 
 
 def _naive_diversity(items):
-    """보고서 설명 그대로: 매번 남은 후보 전체에 0.9^k를 곱해 다시 비교"""
+    """보고서 설명 그대로: 매번 남은 후보 전체에 0.9^min(k, 3)을 곱해 다시 비교"""
     remaining, counts, out = list(items), {}, []
     while remaining:
         for it in remaining:
-            it["_adj"] = it["result"]["total"] * 0.9 ** counts.get(it["main_category"], 0)
+            it["_adj"] = it["result"]["total"] * 0.9 ** min(counts.get(it["main_category"], 0), s.DIVERSITY_MAX_K)
         remaining.sort(key=lambda it: (-round(it["_adj"], 9), *s._tie_key(it)))
         best = remaining.pop(0)
         counts[best["main_category"]] = counts.get(best["main_category"], 0) + 1
@@ -176,3 +178,28 @@ def test_category_mismatch_is_filtered_out():
     assert excluded == []  # 카테고리로 빠진 곳은 제외 목록에 넣지 않는다
     kept, _ = s.hard_filter([cafe, shop, both], s.Conditions(categories=[]))
     assert len(kept) == 3
+
+
+def test_diversity_penalty_is_capped():
+    # 같은 카테고리 10곳 뒤에 오는 80점짜리도 0.9^3까지만 곱해져, 55점짜리 다른 카테고리보다 앞선다
+    items = [{"id": i, "name": f"칼국수{i}", "main_category": "음식", "distance_km": 1,
+              "google_reviews": 0, "result": {"total": 90 - i}} for i in range(11)]
+    items.append({"id": 99, "name": "화장품", "main_category": "쇼핑", "distance_km": 1,
+                  "google_reviews": 0, "result": {"total": 55}})
+    ranked = s.rank_with_diversity(items)
+    assert ranked[-1]["name"] == "화장품"
+    last_food = ranked[-2]
+    assert last_food["penalty_k"] == 3 and last_food["same_above"] == 10
+
+
+def test_s6_without_reviews_uses_likes_only():
+    assert s.s6_own(None, 0, 0, 10, 4.0) == 0.0
+    only_like = s.s6_own(None, 0, 1, 1, 4.0)
+    assert abs(only_like - 0.3) < 1e-9  # 찜 부분만 (0.3 × 1)
+
+
+def test_s2_matches_english_name_and_description():
+    p = _place("뿌리공원", ["가족"], "", None, None, name_en="Ppuri Park", description_en="A park about family names")
+    assert s.s2_query(p, "ppuri") == s.S2_NAME
+    assert s.s2_query(p, "family names") == s.S2_DESCRIPTION
+    assert s.s2_query(p, "museum") == 0.0

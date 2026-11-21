@@ -10,9 +10,12 @@
 # v0.7 (2026-11-19) 현재 위치 반영: 검색 폼의 숨은 칸 lat·lng → 출발점 (중구 밖·거부 시 기본 위치), 지도에 출발점 전달
 # v0.8 (2026-11-19) 네이버 지도: 환경 변수 NAVER_MAP_CLIENT_ID를 템플릿에 내려줌 (없으면 지도는 OSM으로 자동 전환)
 # v0.9 (2026-11-19) 결과 화면: 동네별 개수 요약·동네 필터(dong, 결과 목록에서 거름)·카테고리 칩(조건 유지하고 카테고리만 바꿔 재검색)
+# v0.10 (2026-11-21) 사용자 테스트 반영: 사업자는 자기 가게에 리뷰·찜 불가(5번), 사업자 본인 조회 제외·같은 사람 같은 날 조회는 1회(6번),
+#                    로그인 안 한 채 찜 → 로그인 후 보던 가게로 돌아오고 찜 처리(7번), 사업자 가입 가게 목록 가나다순, 지도 이름 외국어 화면은 영문
 
 import os
 import re
+from datetime import datetime
 from collections import Counter
 from functools import wraps
 
@@ -76,6 +79,14 @@ def login_required(view):
     @wraps(view)
     def wrapped(*args, **kwargs):
         if g.user is None:
+            if request.method == "POST":
+                # 폼(리뷰·찜)에서 왔으면 로그인 후 보던 화면으로 돌아간다. 찜은 로그인 후 이어서 처리
+                back = request.form.get("next") or ""
+                if not back.startswith("/") or back.startswith("//"):
+                    back = url_for("index")
+                if view.__name__ == "like" and "place_id" in kwargs:
+                    session["pending_like"] = kwargs["place_id"]
+                return redirect(url_for("login", next=back))
             return redirect(url_for("login", next=request.path))
         return view(*args, **kwargs)
     return wrapped
@@ -132,7 +143,9 @@ def search_args():
 
 
 def map_points(items, src):
-    return [{"id": p["id"], "name": p["name"], "lat": p["lat"], "lng": p["lng"],
+    use_en = getattr(g, "lang", DEFAULT_LANG) != "ko"
+    return [{"id": p["id"], "name": (p.get("name_en") if use_en and p.get("name_en") else p["name"]),
+             "lat": p["lat"], "lng": p["lng"],
              "rank": p.get("rank"), "src": src} for p in items]
 
 
@@ -185,7 +198,8 @@ def place_detail(place_id):
     src = request.args.get("src", "direct")
     if src not in ("list", "map", "direct"):
         src = "direct"
-    db.log_view(place_id, g.user["id"] if g.user else None, src, request.args.get("q"))
+    if should_log_view(place_id):
+        db.log_view(place_id, g.user["id"] if g.user else None, src, request.args.get("q"))
 
     # 검색에서 넘어왔으면 같은 조건으로 다시 계산해 점수표를 보여 준다
     scored, excluded_reasons = None, None
@@ -203,8 +217,25 @@ def place_detail(place_id):
 
     return render_template("place.html", place=place, scored=scored,
                            excluded_reasons=excluded_reasons, args=args, reviews=reviews,
-                           summary=summary, mine=mine, liked=liked,
+                           summary=summary, mine=mine, liked=liked, own_place=is_own_place(place_id),
                            points=map_points([place], "map"))
+
+
+def is_own_place(place_id):
+    """사업자가 자기 가게를 보고 있는지 (자기 가게에는 리뷰·찜을 못 하고, 조회수에도 넣지 않는다)"""
+    return bool(g.user and g.user["role"] == "owner" and g.user["owner_place_id"] == place_id)
+
+
+def should_log_view(place_id):
+    """같은 사람(같은 브라우저)이 같은 날 다시 본 것은 세지 않는다. 사업자 본인 조회도 뺀다."""
+    if is_own_place(place_id):
+        return False
+    key = f"{place_id}:{datetime.now().date().isoformat()}"
+    seen = session.get("viewed", [])
+    if key in seen:
+        return False
+    session["viewed"] = (seen + [key])[-100:]  # 쿠키가 커지지 않게 최근 100개만
+    return True
 
 
 def back_to_place(place_id):
@@ -224,7 +255,7 @@ def write_review(place_id):
         rating = int(request.form.get("rating", 0))
     except ValueError:
         rating = 0
-    if 1 <= rating <= 5:
+    if 1 <= rating <= 5 and not is_own_place(place_id):
         db.upsert_review(g.user["id"], place_id, rating, (request.form.get("body") or "").strip()[:500])
     return back_to_place(place_id)
 
@@ -234,7 +265,8 @@ def write_review(place_id):
 def like(place_id):
     if db.get_place(place_id) is None:
         abort(404)
-    db.toggle_like(g.user["id"], place_id)
+    if not is_own_place(place_id):
+        db.toggle_like(g.user["id"], place_id)
     return back_to_place(place_id)
 
 
@@ -242,7 +274,8 @@ def like(place_id):
 
 @app.route("/signup", methods=["GET", "POST"])
 def signup():
-    places = [p for p in db.all_places_with_stats() if not p["is_conglomerate"] and not p.get("is_franchise")]
+    places = sorted((p for p in db.all_places_with_stats() if not p["is_conglomerate"] and not p.get("is_franchise")),
+                    key=lambda p: p["name"])  # 가나다순
     error = None
     if request.method == "POST":
         username = (request.form.get("username") or "").strip()
@@ -276,9 +309,14 @@ def login():
         user = db.get_user_by_name((request.form.get("username") or "").strip())
         if user and check_password_hash(user["pw_hash"], request.form.get("password") or ""):
             lang = g.lang
+            pending = session.get("pending_like")
             session.clear()
             session["user_id"] = user["id"]
             session["lang"] = lang
+            # 로그인 전에 누른 찜을 이어서 처리 (이미 찜했거나 자기 가게면 그대로 둔다)
+            if pending and db.get_place(pending) and not db.has_liked(user["id"], pending) \
+                    and not (user["role"] == "owner" and user["owner_place_id"] == pending):
+                db.toggle_like(user["id"], pending)
             target = request.args.get("next") or ""
             return redirect(target if target.startswith("/") and not target.startswith("//")
                             else url_for("index"))
