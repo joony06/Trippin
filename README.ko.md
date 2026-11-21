@@ -135,3 +135,7 @@ flask --app app run --debug      # http://localhost:5000
 | 2 · 데이터·백엔드 | 최원준 | 구글 API 연동, 대시보드 집계, 장소 데이터·설명문 생성 |
 
 > 성균관대학교 「문제해결과컴퓨팅」 프로젝트
+
+## 라이선스
+
+Copyright (c) 2026 최원준과 트립핀 팀(김가연, 김나연, 박한희, 최원준). All rights reserved. 자세한 내용은 [LICENSE](LICENSE)를 보세요.

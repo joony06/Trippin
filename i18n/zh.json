@@ -20,8 +20,8 @@
  "f_budget": "预算（门票等）",
  "f_budget_none": "不限",
  "f_categories": "类别",
- "f_query": "关键词",
- "f_query_ph": "例如：历史、刀切面",
+ "f_query": "搜索店铺或菜品",
+ "f_query_ph": "店名或菜名（例如：刀切面、圣心堂）",
  "f_day": "到访星期",
  "f_time": "到访时间",
  "f_any": "不限",
@@ -124,11 +124,13 @@
  "not_owner": "请使用商家账户登录查看。",
  "view_detail": "详情",
  "back_to_results": "返回结果",
- "footer": "Trippin · 成均馆大学 问题解决与计算 第13组",
+ "footer": "© 2026 최원준 · Trippin 团队 (김가연·김나연·박한희·최원준) · 成均馆大学 问题解决与计算 第13组",
  "showing_top": "仅显示前 {n} 个。",
  "photo_credit": "照片：韩国观光公社",
  "reason_franchise": "大型连锁",
  "category_only_note": "只显示符合所选类别的地点。",
  "no_info": "暂无信息",
- "own_place_note": "这是您自己的店铺，不能评论或收藏，您的浏览也不计入浏览量。"
+ "own_place_note": "这是您自己的店铺，不能评论或收藏，您的浏览也不计入浏览量。",
+ "query_as_category": "“{q}”已按类别搜索。店名或菜名请输入搜索框，类型请用下方标签选择。",
+ "map_loading": "正在加载地图"
 }

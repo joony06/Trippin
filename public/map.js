@@ -5,6 +5,7 @@
 // v0.3 (2026-11-19) 네이버 지도로 교체. 키(NAVER_MAP_CLIENT_ID)가 없거나, 스크립트 로드 실패·인증 실패·시간 초과면
 //                   Leaflet(OSM) 지도(map_leaflet.js)로 자동 전환. 상세 화면에서는 그 장소 마커를 강조
 // v0.4 (2026-11-21) 최종 디자인: 핀을 물방울 모양(.pin, 선택은 .pin.on)으로, 기준점을 핀 끝(아래)으로
+// v0.5 (2026-11-21) 지도 로딩 화면(#map-loading): 지도가 실제로 그려진 뒤에 숨김 (네이버 인증 실패 화면이 잠깐 보이던 문제)
 //
 // 키는 서버가 환경 변수에서 읽어 base.html의 window.TRIPPIN_NAVER_MAP_KEY로 내려준다 (코드에 직접 쓰지 않음).
 (function () {
@@ -55,6 +56,11 @@
   var mode = "loading"; // loading → naver | leaflet
   var timer = null;
 
+  // 우리 로딩 화면: 지도가 그려진 뒤에 숨긴다. 무슨 일이 있어도 12초 뒤에는 숨긴다
+  var loadingEl = document.getElementById("map-loading");
+  function hideLoading() { if (loadingEl) loadingEl.classList.add("done"); }
+  setTimeout(hideLoading, 12000);
+
   function useLeaflet(reason) {
     if (mode === "leaflet") return;
     mode = "leaflet";
@@ -65,6 +71,7 @@
     el.parentNode.replaceChild(fresh, el);
     el = fresh;
     if (window.TrippinMap && window.TrippinMap.leaflet) window.TrippinMap.leaflet(el, d);
+    hideLoading();
   }
 
   // ---------------------------------------------------------------- 네이버 지도
@@ -83,8 +90,8 @@
     new nm.Marker({
       position: center, map: map, title: "📍",
       icon: {
-        content: '<span style="display:block;width:14px;height:14px;border-radius:50%;' +
-                 'background:#2F86FF;border:2px solid #1E5BD8"></span>',
+        content: '<span style="display:block;width:16px;height:16px;border-radius:50%;' +
+                 'background:#2F86FF;border:3px solid #fff;box-shadow:0 0 0 5px rgba(47,134,255,.25)"></span>',
         anchor: new nm.Point(9, 9)
       }
     });
@@ -107,6 +114,10 @@
       west = Math.min(west, p.lng); east = Math.max(east, p.lng);
     });
     nm.Event.addListener(map, "click", function () { info.close(); });
+    // 타일이 다 그려지고 잠시 뒤에 로딩 화면을 숨긴다. 그 사이 인증 실패가 오면 OSM으로 바뀌고 거기서 숨긴다
+    nm.Event.once(map, "tilesloaded", function () {
+      setTimeout(function () { if (mode === "naver") hideLoading(); }, 1200);
+    });
 
     if (points.length) {
       var bounds = new nm.LatLngBounds(new nm.LatLng(south, west), new nm.LatLng(north, east));

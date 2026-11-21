@@ -3,6 +3,7 @@
  * v0.1 (2026-11-18) MVP 기본 스타일
  * v0.2 (2026-11-21) 최종 디자인 (시안 A+B): 지도가 화면을 채우고 왼쪽 패널에 검색·목록,
  *                   목록마다 점수 구성 막대(S1~S6), 핀은 로고의 물방울 모양, 글꼴 SUIT
+ * v0.3 (2026-11-21) 로고 크게, 지도 로딩 화면, 하단(저작권·출처)을 모든 화면 맨 아래에 고정
  *
  * 색은 로고에서 가져온다: 남색(글자·핀), 파랑(행동 버튼), 하늘(현재 위치·선택), 연파랑(바탕 강조).
  * 강조색은 '행동(파랑)'과 '선택·위치(하늘)' 두 군데에만 쓴다.
@@ -20,7 +21,8 @@
   /* 점수 구성 막대: 비중이 큰 기준일수록 진한 색 */
   --s1: #0B1A4A; --s2: #1E5BD8; --s3: #2F86FF; --s4: #6FA8F5; --s5: #A9CBF7; --s6: #CFE1FB;
   --r-panel: 14px; --r-ctl: 10px;
-  --top: 60px;
+  --top: 64px;
+  --foot: 36px;
   --ease: cubic-bezier(.2, .8, .2, 1);
 }
 * { box-sizing: border-box; }
@@ -29,7 +31,9 @@ body {
   margin: 0; color: var(--ink); background: var(--paper); line-height: 1.5;
   font-family: "SUIT Variable", "SUIT", "Pretendard", "Apple SD Gothic Neo", "Noto Sans KR", system-ui, sans-serif;
   font-size: 15px; -webkit-font-smoothing: antialiased; word-break: keep-all;
+  min-height: 100vh; min-height: 100dvh; display: flex; flex-direction: column;
 }
+body > main { flex: 1 0 auto; width: 100%; }
 a { color: var(--act); text-decoration: none; }
 a:hover { text-decoration: underline; text-underline-offset: 3px; }
 :focus-visible { outline: 2px solid var(--sky); outline-offset: 2px; border-radius: 4px; }
@@ -45,7 +49,8 @@ h1, h2, h3 { letter-spacing: -0.02em; line-height: 1.25; }
   display: flex; align-items: center; justify-content: space-between; gap: 16px;
   padding: 0 20px; background: #fff; border-bottom: 1px solid var(--line);
 }
-.brand img { height: 28px; display: block; }
+.brand { display: block; padding: 4px 0; }
+.brand img { height: 36px; display: block; }
 .topbar nav { display: flex; align-items: center; gap: 16px; font-size: 14px; min-width: 0; }
 .topbar nav > a { color: var(--ink); font-weight: 600; }
 .who { color: var(--mute); max-width: 120px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
@@ -61,7 +66,11 @@ main { max-width: 1180px; margin: 0 auto; padding: 28px 20px 56px; }
 .card, .search-card { background: #fff; border: 1px solid var(--line); border-radius: var(--r-panel); padding: 20px; margin-bottom: 16px; }
 .card.narrow { max-width: 420px; margin: 40px auto; }
 .card h2 { font-size: 18px; margin: 0 0 12px; }
-footer { text-align: center; font-size: 12px; color: var(--mute); padding: 20px; border-top: 1px solid var(--line); background: #fff; }
+.foot {
+  flex: none; min-height: var(--foot); display: flex; align-items: center; justify-content: center; flex-wrap: wrap; gap: 2px 14px;
+  padding: 8px 20px; font-size: 11.5px; color: var(--mute); background: #fff; border-top: 1px solid var(--line); text-align: center;
+}
+.foot .src { color: #8592AE; }
 
 /* 입력 */
 label { display: block; font-size: 13px; font-weight: 700; margin-bottom: 12px; color: var(--ink); }
@@ -92,14 +101,25 @@ legend { font-size: 13px; font-weight: 700; margin-bottom: 8px; }
 .tag.warn { background: #FBEAE6; color: var(--warn); }
 
 /* ---------------------------------------------------------------- 지도 화면 (첫 화면·결과) */
-.mapapp { display: grid; grid-template-columns: 420px 1fr; height: calc(100vh - var(--top)); height: calc(100dvh - var(--top)); }
+.mapapp { display: grid; grid-template-columns: 420px 1fr; height: calc(100vh - var(--top) - var(--foot)); height: calc(100dvh - var(--top) - var(--foot)); }
 .sheet { min-width: 0; overflow-y: auto; background: #fff; border-right: 1px solid var(--line); overscroll-behavior: contain; }
 .mapwrap { position: relative; min-width: 0; }
-.mapapp .map { height: 100%; border: 0; border-radius: 0; margin: 0; }
+.mapapp .map-box, .mapapp .map { height: 100%; }
+.map-box { position: relative; }
+.map { height: 100%; }
+
+/* 지도 로딩 화면: 지도가 준비되면 사라진다 */
+.map-loading {
+  position: absolute; inset: 0; z-index: 500; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 14px;
+  background: var(--paper); color: var(--mute); font-size: 14px; font-weight: 600; transition: opacity .3s var(--ease), visibility .3s;
+}
+.map-loading p { margin: 0; }
+.map-loading .pin { width: 30px; height: 30px; animation: pin-drop 1.1s var(--ease) infinite; }
+.map-loading.done { opacity: 0; visibility: hidden; }
+@keyframes pin-drop { 0%, 100% { transform: rotate(-45deg) translate(0, 0); } 45% { transform: rotate(-45deg) translate(5px, -5px); } }
 .intro { padding: 24px 20px 4px; }
 .intro h1 { font-size: 26px; margin: 0 0 6px; }
 .intro p { margin: 0; color: var(--mute); }
-.sheet-foot { margin: 0; padding: 20px; font-size: 12px; color: var(--mute); border-top: 1px solid var(--hair); }
 
 /* 검색 폼 (패널 안) */
 .mapapp .search-card { border: 0; border-radius: 0; margin: 0; padding: 16px 20px 12px; }
@@ -183,7 +203,7 @@ legend { font-size: 13px; font-weight: 700; margin-bottom: 8px; }
 /* ---------------------------------------------------------------- 장소 상세 */
 .back { margin: 0 0 12px; font-size: 14px; }
 .back a::before { content: "‹ "; }
-.detail .map { height: 300px; border: 1px solid var(--line); border-radius: var(--r-panel); margin-bottom: 16px; }
+.detail .map-box { height: 300px; border: 1px solid var(--line); border-radius: var(--r-panel); margin-bottom: 16px; overflow: hidden; }
 .place-photo { width: 100%; max-height: 280px; object-fit: cover; border-radius: 10px; display: block; }
 .place-photo + p { margin: 6px 0 0; }
 .place-name { font-size: 28px; margin: 14px 0 4px; }
@@ -232,9 +252,9 @@ select, input[type=time] { font-weight: 500; }
 
 /* ---------------------------------------------------------------- 휴대폰 */
 @media (max-width: 860px) {
-  :root { --top: 54px; }
+  :root { --top: 56px; }
   .topbar { padding: 0 14px; gap: 10px; }
-  .brand img { height: 24px; }
+  .brand img { height: 30px; }
   .topbar nav { gap: 10px; font-size: 13px; overflow-x: auto; scrollbar-width: none; }
   .who, .topbar nav > a:first-child { display: none; }
   .topbar nav a { white-space: nowrap; }
@@ -248,5 +268,5 @@ select, input[type=time] { font-weight: 500; }
   main { padding: 20px 14px 40px; }
 }
 @media (prefers-reduced-motion: reduce) {
-  *, *::before { transition: none !important; }
+  *, *::before { transition: none !important; animation: none !important; }
 }

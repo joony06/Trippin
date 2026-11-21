@@ -14,7 +14,7 @@
 </head>
 <body class="{% block body_class %}page{% endblock %}">
   <header class="topbar">
-    <a href="{{ url_for('index') }}" class="brand"><img src="/logo-wordmark.png" alt="Trippin"></a>
+    <a href="{{ url_for('index') }}" class="brand"><img src="/logo-wordmark.png" alt="Trippin {{ t('nav_search') }}"></a>
     <nav>
       <a href="{{ url_for('index') }}">{{ t('nav_search') }}</a>
       {% if user %}
@@ -33,7 +33,8 @@
     </nav>
   </header>
   <main>{% block content %}{% endblock %}</main>
-  {% block footer %}<footer>{{ t('footer') }}<br><span>{{ t('sample_notice') }}</span></footer>{% endblock %}
+  {# 하단: 저작권·데이터 출처. 모든 화면에서 창 맨 아래에 붙는다 #}
+  <footer class="foot"><span>{{ t('footer') }}</span><span class="src">{{ t('sample_notice') }}</span></footer>
   {# 지도: 네이버 지도 키가 있으면 map.js가 네이버 지도를 불러오고, 없거나 실패하면 Leaflet(OSM)으로 그린다 #}
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
   <script>window.TRIPPIN_NAVER_MAP_KEY = {{ naver_map_client_id | tojson }};</script>

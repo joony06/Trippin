@@ -167,7 +167,7 @@
   },
   {
    "name": "스카이로드",
-   "name_en": "Euneungjeongi Culture Street",
+   "name_en": null,
    "categories": [
     "액티비티",
     "사진명소",
@@ -1470,7 +1470,7 @@
   },
   {
    "name": "다다르다",
-   "name_en": "Sungsimdang Culture Space",
+   "name_en": null,
    "categories": [
     "쇼핑"
    ],
@@ -1706,7 +1706,7 @@
   },
   {
    "name": "카라멜",
-   "name_en": "Sungsimdang Culture Space",
+   "name_en": null,
    "categories": [
     "음식"
    ],
@@ -1766,7 +1766,7 @@
   },
   {
    "name": "대전 별리달리돈까스",
-   "name_en": "Sungsimdang",
+   "name_en": null,
    "categories": [
     "음식"
    ],
@@ -2091,7 +2091,7 @@
   },
   {
    "name": "대전갈비집",
-   "name_en": "Sonamujip",
+   "name_en": null,
    "categories": [
     "음식"
    ],
@@ -2209,7 +2209,7 @@
   },
   {
    "name": "아저씨돈까스",
-   "name_en": "M-PEAK Daejeon Branch[Tax Refund Shop]",
+   "name_en": null,
    "categories": [
     "음식"
    ],

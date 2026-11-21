@@ -1,2 +1,9 @@
-<div id="map" class="map"></div>
+{# 지도 칸 + 우리 로딩 화면 (네이버 지도 인증·로드 중에 오류 화면 대신 보인다. map.js가 지도가 준비되면 숨김) #}
+<div class="map-box">
+  <div id="map" class="map"></div>
+  <div class="map-loading" id="map-loading" role="status">
+    <span class="pin"><b></b></span>
+    <p>{{ t('map_loading') }}</p>
+  </div>
+</div>
 <script type="application/json" id="map-data">{{ {"origin": origin, "points": points} | tojson }}</script>

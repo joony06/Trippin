@@ -135,3 +135,7 @@ Pushing to `main` deploys to production on Vercel automatically. On Vercel the S
 | 2 · Data & backend | Wonjoon Choi | Google API integration, dashboard aggregation, place data & descriptions |
 
 > A project for *Problem Solving and Computing* at Sungkyunkwan University
+
+## License
+
+Copyright (c) 2026 최원준 (Wonjoon Choi) and the Trippin team (김가연, 김나연, 박한희, 최원준). All rights reserved. See [LICENSE](LICENSE).

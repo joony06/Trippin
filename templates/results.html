@@ -1,7 +1,6 @@
 {% extends "base.html" %}
 {% block title %}{{ t('results_title') }}{% endblock %}
 {% block body_class %}page mapapp-page{% endblock %}
-{% block footer %}{% endblock %}
 {% block content %}
 <div class="mapapp">
   <aside class="sheet">
@@ -18,6 +17,7 @@
 
     <div class="summary">
       <h2>{{ t('results_count', n=total) }}</h2>
+      {% if g.query_as_category %}<p>{{ t('query_as_category', q=g.query_as_category) }}</p>{% endif %}
       {% if cond.categories %}<p>{{ t('category_only_note') }}</p>{% endif %}
       {% if total > ranked|length %}<p>{{ t('showing_top', n=ranked|length) }}</p>{% endif %}
     </div>
@@ -78,7 +78,6 @@
       {% if excluded|length > 20 %}<p class="note">… +{{ excluded|length - 20 }}</p>{% endif %}
     </details>
     {% endif %}
-    <p class="sheet-foot">{{ t('footer') }}<br>{{ t('sample_notice') }}</p>
   </aside>
   <div class="mapwrap">{% include "_map.html" %}</div>
 </div>

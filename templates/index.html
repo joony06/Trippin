@@ -1,6 +1,5 @@
 {% extends "base.html" %}
 {% block body_class %}page mapapp-page{% endblock %}
-{% block footer %}{% endblock %}
 {% block content %}
 <div class="mapapp">
   <aside class="sheet">
@@ -10,7 +9,6 @@
     </section>
     {% set form_open = True %}
     {% include "_search_form.html" %}
-    <p class="sheet-foot">{{ t('footer') }}<br>{{ t('sample_notice') }}</p>
   </aside>
   <div class="mapwrap">{% include "_map.html" %}</div>
 </div>

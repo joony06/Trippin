@@ -12,6 +12,7 @@
 # v0.9 (2026-11-19) 결과 화면: 동네별 개수 요약·동네 필터(dong, 결과 목록에서 거름)·카테고리 칩(조건 유지하고 카테고리만 바꿔 재검색)
 # v0.10 (2026-11-21) 사용자 테스트 반영: 사업자는 자기 가게에 리뷰·찜 불가(5번), 사업자 본인 조회 제외·같은 사람 같은 날 조회는 1회(6번),
 #                    로그인 안 한 채 찜 → 로그인 후 보던 가게로 돌아오고 찜 처리(7번), 사업자 가입 가게 목록 가나다순, 지도 이름 외국어 화면은 영문
+# v0.11 (2026-11-21) 검색어가 카테고리 이름(카페, cafe, 咖啡馆 등 4개 언어)이면 그 카테고리로 바꿔 검색 (검색어 칸에 '카페'를 쓰면 이름에 '카페'가 든 식당이 위에 오던 문제)
 
 import os
 import re
@@ -92,6 +93,25 @@ def login_required(view):
     return wrapped
 
 
+# 검색어 칸에 카테고리 이름을 쓰면 카테고리로 찾는다. 4개 언어 번역 + 자주 쓰는 다른 말
+CATEGORY_WORDS = {"카페": ["커피", "coffee", "cafe", "cafes", "café", "咖啡", "コーヒー"],
+                  "음식": ["맛집", "식당", "음식점", "restaurant", "restaurants", "food", "餐厅", "レストラン"],
+                  "야경": ["night view", "nightview", "night"], "자연": ["공원", "park", "parks"],
+                  "쇼핑": ["shopping", "shop"], "역사": ["history", "historic"]}
+
+
+def category_from_query(q):
+    """검색어가 카테고리 이름과 같으면 그 카테고리 (대소문자·앞뒤 공백 무시). 아니면 None"""
+    word = (q or "").strip().lower()
+    if not word:
+        return None
+    for c in CATEGORIES:
+        names = {c} | {translate(lang, "cat_" + c).lower() for lang in LANGS} | set(CATEGORY_WORDS.get(c, []))
+        if word in names:
+            return c
+    return None
+
+
 def parse_conditions(args):
     """주소창 파라미터(request.args)에서 검색 조건을 읽는다."""
     def to_int(v):
@@ -105,9 +125,19 @@ def parse_conditions(args):
     dist = to_int(args.get("dist")) or 5
     # 브라우저 위치(숨은 칸 lat, lng). 대전 중구 밖이거나 없으면 기본 위치(대전 중구청 앞)
     origin, _state = resolve_origin(args.get("lat"), args.get("lng"))
+    categories = [c for c in args.getlist("cat") if c in CATEGORIES]
+    query = (args.get("q") or "").strip()
+    as_cat = category_from_query(query)
+    g.query_as_category = None
+    if as_cat:
+        # '카페'처럼 카테고리 이름이면 검색어 대신 카테고리로 찾는다 (화면에 안내)
+        g.query_as_category = query
+        query = ""
+        if as_cat not in categories:
+            categories.append(as_cat)
     return Conditions(
-        categories=[c for c in args.getlist("cat") if c in CATEGORIES],
-        query=(args.get("q") or "").strip(),
+        categories=categories,
+        query=query,
         max_km=float(dist),
         budget=budget,
         day=day if day is not None and 0 <= day <= 6 else None,
