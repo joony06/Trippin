@@ -5,7 +5,7 @@
  "nav_signup": "회원가입",
  "nav_logout": "로그아웃",
  "nav_dashboard": "내 가게 대시보드",
- "sample_notice": "시연용 샘플 데이터입니다. 평점·리뷰 수·요금·영업시간은 예시 값입니다.",
+ "sample_notice": "한국관광공사·소상공인시장진흥공단 공공데이터와 구글 평점을 사용합니다. 일부 장소는 평점·영업시간 정보가 없을 수 있어요.",
  "search_title": "대전 중구에서 어디 갈까요?",
  "origin_note": "현재 위치: 대전 중구청 앞 (기본 위치)",
  "origin_current": "현재 위치: 내 위치 (브라우저 위치 기준)",
@@ -127,5 +127,7 @@
  "footer": "트립핀 · 성균관대학교 문제해결과컴퓨팅 13팀",
  "showing_top": "상위 {n}곳만 보여 줘요.",
  "photo_credit": "사진: 한국관광공사",
- "reason_franchise": "대형 프랜차이즈"
+ "reason_franchise": "대형 프랜차이즈",
+ "category_only_note": "고른 카테고리에 맞는 장소만 보여 줘요.",
+ "no_info": "정보 없음"
 }

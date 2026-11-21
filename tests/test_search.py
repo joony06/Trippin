@@ -5,6 +5,7 @@
 # v0.2 (2026-11-18) 빨라진 다양성 보정이 '하나씩 다시 비교하는' 원래 방식과 같은 순서를 내는지 확인하는 테스트 추가
 # v0.3 (2026-11-18) 대형 프랜차이즈 하드 필터 테스트 추가
 # v0.4 (2026-11-19) 현재 위치(출발점) 테스트 추가: 중구 안이면 사용, 밖·거부·잘못된 값이면 기본 위치
+# v0.5 (2026-11-21) 카테고리 하드 필터 테스트 추가: 고른 카테고리와 하나도 안 맞으면 제외, 안 고르면 모두 남김
 #
 # 실행: python -m pytest -q
 
@@ -164,3 +165,14 @@ def test_search_measures_distance_from_origin():
     assert len(kept) == 1 and kept[0]["distance_km"] < 0.01
     kept, excluded = s.hard_filter([place], far)
     assert not kept and excluded[0][1] == ["distance"]
+
+
+def test_category_mismatch_is_filtered_out():
+    cafe = _place("동네 카페", ["카페"], "", None, None, lat=36.3256, lng=127.4213)
+    shop = _place("화장품 가게", ["쇼핑"], "", None, None, lat=36.3256, lng=127.4213)
+    both = _place("빵집", ["카페", "음식"], "", None, None, lat=36.3256, lng=127.4213)
+    kept, excluded = s.hard_filter([cafe, shop, both], s.Conditions(categories=["카페"]))
+    assert [p["name"] for p in kept] == ["동네 카페", "빵집"]
+    assert excluded == []  # 카테고리로 빠진 곳은 제외 목록에 넣지 않는다
+    kept, _ = s.hard_filter([cafe, shop, both], s.Conditions(categories=[]))
+    assert len(kept) == 3
