@@ -59,7 +59,7 @@
  "contrib": "加权得分",
  "total": "总分",
  "adjusted": "多样性调整后",
- "diversity_note": "上方已有 {k} 个同一主类别的地点，因此乘以 0.9^{k}。",
+ "diversity_note": "上方已有 {n} 个同一主类别的地点，因此乘以 0.9^{k}（最多 0.9³）。",
  "not_used": "未使用",
  "neutral_note": "没有谷歌数据，使用中性值 0.5。",
  "s1": "类别匹配度",
@@ -129,5 +129,6 @@
  "photo_credit": "照片：韩国观光公社",
  "reason_franchise": "大型连锁",
  "category_only_note": "只显示符合所选类别的地点。",
- "no_info": "暂无信息"
+ "no_info": "暂无信息",
+ "own_place_note": "这是您自己的店铺，不能评论或收藏，您的浏览也不计入浏览量。"
 }

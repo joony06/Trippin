@@ -5,6 +5,8 @@
 # v0.2 (2026-11-18) 다양성 보정 속도 개선: 카테고리별 정렬 목록에서 맨 앞만 비교 (결과는 같고, 수천 곳에서도 빠름)
 # v0.3 (2026-11-18) 하드 필터에 대형 프랜차이즈 제외 추가 (팀 결정: 대기업 계열 + 대형 프랜차이즈 제외)
 # v0.4 (2026-11-21) 카테고리를 고르면 하나도 맞지 않는 곳(S1=0)은 하드 필터로 뺌 (사용자 테스트 1번). 제외 목록에는 넣지 않음
+# v0.5 (2026-11-21) 다양성 보정 한도: 같은 대표 카테고리가 아무리 많아도 0.9^3까지만 곱함 (한희 수정사항 7번, 팀 결정)
+# v0.6 (2026-11-21) S6: 리뷰가 0개면 평점 부분은 0 (찜만 있는데 사이트 평균이 들어가던 문제), S2: 영문 이름·영문 설명도 검색 (대소문자 무시)
 
 import math
 from dataclasses import dataclass, field
@@ -25,6 +27,7 @@ WEIGHTS = {"s1": 0.35, "s2": 0.20, "s3": 0.20, "s4": 0.10, "s5": 0.08, "s6": 0.0
 D_MAX_KM = 10.0       # S3 점수가 0이 되는 기준 거리
 NEUTRAL = 0.5         # 구글 데이터가 없을 때 S4·S5 중립값
 DIVERSITY_BASE = 0.9  # 같은 대표 카테고리가 k개 나왔으면 0.9^k 를 곱한다
+DIVERSITY_MAX_K = 3   # 곱하는 횟수 한도 (0.9^3 ≈ 0.73). 한도가 없으면 10곳쯤 지나 점수가 1/3이 되어 무관한 곳이 앞에 옴
 
 # S2 검색어 관련도 점수
 S2_NAME, S2_CATEGORY, S2_DESCRIPTION = 1.0, 0.7, 0.4
@@ -112,13 +115,14 @@ def s2_query(place, query):
     q = (query or "").strip()
     if not q:
         return None
-    if q in place["name"]:
+    ql = q.lower()
+    if q in place["name"] or ql in (place.get("name_en") or "").lower():
         return S2_NAME
     for c in place["categories"]:
         # 검색어가 카테고리에 포함되거나, 검색어 안에 카테고리 이름이 있어도 인정 ('역사 명소' 등)
         if q in c or c in q:
             return S2_CATEGORY
-    if q in (place.get("description") or ""):
+    if q in (place.get("description") or "") or ql in (place.get("description_en") or "").lower():
         return S2_DESCRIPTION
     return 0.0
 
@@ -145,12 +149,13 @@ def s5_popularity(count, v_max):
 
 
 def s6_own(own_avg, own_count, likes, l_max, site_avg):
-    """S6 = 0.7 × (R′자체 − 1) ÷ 4 + 0.3 × log(1 + L) ÷ log(1 + L_max). 데이터 없으면 0"""
+    """S6 = 0.7 × (R′자체 − 1) ÷ 4 + 0.3 × log(1 + L) ÷ log(1 + L_max). 리뷰가 없으면 평점 부분 0, 둘 다 없으면 0"""
     if not own_count and not likes:
         return 0.0
-    r_own = bayesian_rating(own_avg, own_count or 0, OWN_M, site_avg)
+    # 리뷰가 없으면 평점 부분은 0 (사이트 평균을 넣지 않는다)
+    rating_part = rating_to_unit(bayesian_rating(own_avg, own_count, OWN_M, site_avg)) if own_count else 0.0
     like_part = math.log(1 + likes) / math.log(1 + l_max) if l_max else 0.0
-    return 0.7 * rating_to_unit(r_own) + 0.3 * like_part
+    return 0.7 * rating_part + 0.3 * like_part
 
 
 def active_weights(cond):
@@ -209,7 +214,7 @@ def _tie_key(item):
 
 
 def rank_with_diversity(scored):
-    """위에서부터 하나씩 고르며, 같은 대표 카테고리가 k개 나왔으면 0.9^k를 곱해 다시 비교한다.
+    """위에서부터 하나씩 고르며, 같은 대표 카테고리가 k개 나왔으면 0.9^min(k, 3)을 곱해 다시 비교한다.
 
     같은 카테고리 안에서는 곱하는 값이 같으므로 순서가 바뀌지 않는다.
     그래서 카테고리별로 미리 정렬해 두고, 매번 각 카테고리의 맨 앞 후보끼리만 비교한다.
@@ -228,11 +233,12 @@ def rank_with_diversity(scored):
             if k >= len(groups[cat]):
                 continue
             item = groups[cat][k]
-            adjusted = item["result"]["total"] * (DIVERSITY_BASE ** k)
+            adjusted = item["result"]["total"] * (DIVERSITY_BASE ** min(k, DIVERSITY_MAX_K))
             key = (-round(adjusted, 9), *_tie_key(item))
             if best_key is None or key < best_key:
                 best, best_key, best_cat = item, key, cat
-                best["penalty_k"], best["adjusted"] = k, adjusted
+                best["penalty_k"], best["adjusted"] = min(k, DIVERSITY_MAX_K), adjusted
+                best["same_above"] = k  # 위에 같은 대표 카테고리가 몇 곳 있었는지 (화면 안내용)
         if best is None:
             return ranked
         heads[best_cat] += 1

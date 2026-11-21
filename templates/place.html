@@ -24,7 +24,10 @@
         <dd>{% if place.google_rating %}★ {{ place.google_rating }} ({{ '{:,}'.format(place.google_reviews) }}){% else %}{{ t('no_google') }}{% endif %}</dd>
         <dt>{{ t('likes') }}</dt><dd>{{ place.likes }}</dd>
       </dl>
-      {% if user %}
+      {% if own_place %}
+      <p class="small muted">{{ t('own_place_note') }}</p>
+      {% else %}
+      {# 로그인 안 했으면 누를 때 로그인 화면으로 갔다가, 로그인 후 이 화면으로 돌아와 찜이 처리된다 #}
       <form method="post" action="{{ url_for('like', place_id=place.id) }}">
         <input type="hidden" name="next" value="{{ next_url }}">
         <button class="btn {{ 'ghost' if liked }}">{{ '♥ ' ~ t('unlike') if liked else '♡ ' ~ t('like') }}</button>
@@ -55,7 +58,7 @@
           {% endif %}
         </tfoot>
       </table>
-      {% if scored.penalty_k %}<p class="small muted">{{ t('diversity_note', k=scored.penalty_k) }}</p>{% endif %}
+      {% if scored.penalty_k %}<p class="small muted">{{ t('diversity_note', k=scored.penalty_k, n=scored.same_above) }}</p>{% endif %}
       {% if place.google_reviews is none %}<p class="small muted">{{ t('neutral_note') }}</p>{% endif %}
     </section>
     {% elif excluded_reasons %}
@@ -77,7 +80,9 @@
       </dl>
       <p class="small muted">{{ t('adjusted_rating_note', c='%.2f'|format(summary.site_avg)) }}</p>
 
-      {% if user %}
+      {% if own_place %}
+      <p class="small muted">{{ t('own_place_note') }}</p>
+      {% elif user %}
       <form class="review-form" method="post" action="{{ url_for('write_review', place_id=place.id) }}">
         <input type="hidden" name="next" value="{{ next_url }}">
         <h3>{{ t('edit_review') if mine else t('write_review') }}</h3>
