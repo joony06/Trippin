@@ -16,6 +16,7 @@
 # v0.12 (2026-11-21) 영어·중국어·일본어 화면: 영문 이름이 없는 가게·동네는 로마자로 표시 (place_name, dong_name)
 # v0.13 (2026-11-22) 로그인·로그아웃·가입 때 "오늘 본 가게" 기록을 지우지 않음 (로그인 전후로 같은 가게 조회가 두 번 세지던 문제, 김가연)
 # v0.14 (2026-11-22) `python app.py`로 바로 실행: 주소 안내·브라우저 자동 열기, 포트는 환경 변수 PORT (기본 5000)
+# v0.15 (2026-11-22) 5000번이 사용 중이면 비어 있는 다음 포트를 자동으로 사용 (macOS AirPlay 충돌 대비)
 
 import os
 import re
@@ -416,9 +417,21 @@ def health():
 
 if __name__ == "__main__":
     # VS Code에서 이 파일을 그냥 실행(▶)하거나 `python app.py`로 켜면 된다. 브라우저가 자동으로 열린다.
-    # (macOS에서 5000번이 AirPlay와 겹치면 환경 변수 PORT=5001 로 바꿔 실행)
+    # 5000번이 이미 쓰이고 있으면 5001, 5002 … 중 비어 있는 번호를 자동으로 쓴다 (PORT로 직접 지정 가능)
+    import socket
     import webbrowser
-    port = int(os.environ.get("PORT", "5000"))
+
+    def free_port(start):
+        """start번부터 비어 있는 포트를 찾는다 (macOS는 5000번을 AirPlay가 쓰는 경우가 있음)"""
+        for p in range(start, start + 20):
+            with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as sock:
+                if sock.connect_ex(("127.0.0.1", p)) != 0:
+                    return p
+        return start
+
+    port = int(os.environ.get("PORT") or os.environ.get("TRIPPIN_PORT") or 0) or \
+        (int(os.environ["TRIPPIN_RUN_PORT"]) if os.environ.get("TRIPPIN_RUN_PORT") else free_port(5000))
+    os.environ["TRIPPIN_RUN_PORT"] = str(port)  # 자동 재시작된 프로세스도 같은 포트를 쓰게
     if os.environ.get("WERKZEUG_RUN_MAIN") != "true":  # 자동 재시작 때 브라우저가 두 번 열리지 않게
         print(f"트립핀 실행 중: http://127.0.0.1:{port}  (끄려면 Ctrl+C)")
         webbrowser.open(f"http://127.0.0.1:{port}")
