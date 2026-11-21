@@ -4,7 +4,7 @@
  * v0.2 (2026-11-21) 최종 디자인 (시안 A+B): 지도가 화면을 채우고 왼쪽 패널에 검색·목록,
  *                   목록마다 점수 구성 막대(S1~S6), 핀은 로고의 물방울 모양, 글꼴 SUIT
  * v0.3 (2026-11-21) 로고 크게, 지도 로딩 화면, 하단(저작권·출처)을 모든 화면 맨 아래에 고정
- * v0.4 (2026-11-21) 로고 한 번 더 키움 (42px, 휴대폰 34px)
+ * v0.4 (2026-11-21) 로고 한 번 더 키움 (그림 여백을 잘라 34px = 이전보다 약 1.4배, 휴대폰 28px), 하단 두 줄(저작권 / 데이터 출처)
  *
  * 색은 로고에서 가져온다: 남색(글자·핀), 파랑(행동 버튼), 하늘(현재 위치·선택), 연파랑(바탕 강조).
  * 강조색은 '행동(파랑)'과 '선택·위치(하늘)' 두 군데에만 쓴다.
@@ -23,7 +23,7 @@
   --s1: #0B1A4A; --s2: #1E5BD8; --s3: #2F86FF; --s4: #6FA8F5; --s5: #A9CBF7; --s6: #CFE1FB;
   --r-panel: 14px; --r-ctl: 10px;
   --top: 68px;
-  --foot: 36px;
+  --foot: 50px;
   --ease: cubic-bezier(.2, .8, .2, 1);
 }
 * { box-sizing: border-box; }
@@ -51,7 +51,7 @@ h1, h2, h3 { letter-spacing: -0.02em; line-height: 1.25; }
   padding: 0 20px; background: #fff; border-bottom: 1px solid var(--line);
 }
 .brand { display: block; padding: 4px 0; }
-.brand img { height: 42px; display: block; }
+.brand img { height: 34px; display: block; } /* 로고 그림은 여백을 잘라 냈으므로 높이 = 글자 크기 */
 .topbar nav { display: flex; align-items: center; gap: 16px; font-size: 14px; min-width: 0; }
 .topbar nav > a { color: var(--ink); font-weight: 600; }
 .who { color: var(--mute); max-width: 120px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
@@ -68,8 +68,8 @@ main { max-width: 1180px; margin: 0 auto; padding: 28px 20px 56px; }
 .card.narrow { max-width: 420px; margin: 40px auto; }
 .card h2 { font-size: 18px; margin: 0 0 12px; }
 .foot {
-  flex: none; min-height: var(--foot); display: flex; align-items: center; justify-content: center; flex-wrap: wrap; gap: 2px 14px;
-  padding: 8px 20px; font-size: 11.5px; color: var(--mute); background: #fff; border-top: 1px solid var(--line); text-align: center;
+  flex: none; height: var(--foot); display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 1px;
+  padding: 0 20px; line-height: 1.4; overflow: hidden; font-size: 11.5px; color: var(--mute); background: #fff; border-top: 1px solid var(--line); text-align: center;
 }
 .foot .src { color: #8592AE; }
 
@@ -255,12 +255,13 @@ select, input[type=time] { font-weight: 500; }
 @media (max-width: 860px) {
   :root { --top: 56px; }
   .topbar { padding: 0 14px; gap: 10px; }
-  .brand img { height: 34px; }
+  .brand img { height: 28px; }
   .topbar nav { gap: 10px; font-size: 13px; overflow-x: auto; scrollbar-width: none; }
   .who, .topbar nav > a:first-child { display: none; }
   .topbar nav a { white-space: nowrap; }
   .langs { padding-left: 8px; }
   .mapapp { display: flex; flex-direction: column; height: auto; }
+  .foot { height: auto; padding: 10px 14px; }
   .mapwrap { order: -1; height: 42vh; min-height: 260px; }
   .sheet { border-right: 0; overflow: visible; border-radius: 18px 18px 0 0; margin-top: -16px; position: relative; z-index: 5; box-shadow: 0 -4px 16px rgba(11, 26, 74, .08); }
   .split { grid-template-columns: 1fr; }
