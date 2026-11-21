@@ -1,0 +1,21 @@
+Copyright (c) 2026 Wonjoon Choi and Team Trippin
+(Gayeon Kim, Nayun Kim, Hanhee Park, Wonjoon Choi),
+Sungkyunkwan University, Problem Solving and Computing, Team 13.
+All rights reserved.
+
+The source code, design, logo and documentation in this repository are owned
+by the copyright holders above. No part of this repository may be copied,
+modified, distributed or used commercially without their prior written
+permission.
+
+Viewing and running this repository for course grading and competition
+judging is permitted.
+
+Third-party data and software remain under their own terms:
+- Korea Tourism Organization TourAPI and SEMAS store information
+  (Public Data Portal, data.go.kr)
+- Google Places ratings, review counts and opening hours
+- NAVER Maps API
+- Leaflet (BSD-2-Clause) and OpenStreetMap data (ODbL)
+- SUIT typeface (SIL Open Font License 1.1)
+- Jung-gu boundary: Statistics Korea 2013 administrative boundaries via github.com/southkorea/southkorea-maps

@@ -10,6 +10,7 @@
 # v0.7 (2026-11-21) 검수표 반영: 가게별 판정(store_verdicts.json: 대기업·대형체인·기관)을 덮어씀, 대형체인 브랜드 목록(chain_brands.txt),
 #                   철자 다른 브랜드 표기(바게트/바게뜨, 베스킨/배스킨) 맞춤, 관광지 이름으로 역사·자연·야경 카테고리 보강,
 #                   요금은 모르는 값이라 0 대신 None(화면에 '정보 없음'). 이미 만든 places.json에만 적용: --apply-only
+# v0.8 (2026-11-21) 영문 이름 위치 짝짓기 수정: 이름으로 이미 짝지어진 영문 이름은 근처 다른 장소에 붙이지 않음 (스카이로드 ← 으능정이 문제)
 #
 # 실행 (프로젝트 루트에서, collect_sbiz.py·collect_tour.py를 먼저 실행):
 #   python data/build_places.py
@@ -239,11 +240,16 @@ def build():
         if m:
             eng_by_name[norm_name(m.group(1))] = re.sub(r"\s*\(.*?\)\s*$", "", e["title"]).strip()
 
+    claimed = {eng_by_name[norm_name(k["title"])] for k in tour_kor if norm_name(k["title"]) in eng_by_name}
+
     def english_name(k):
         if norm_name(k["title"]) in eng_by_name:
             return eng_by_name[norm_name(k["title"])]
+        # 위치로 짝짓기: 다른 장소가 이름으로 이미 가져간 영문 이름은 쓰지 않는다 (같은 건물의 다른 가게에 붙던 문제)
         best = None
         for e in tour_eng:
+            if re.sub(r"\s*\(.*?\)\s*$", "", e.get("title") or "").strip() in claimed:
+                continue
             if e.get("lat") and k.get("lat"):
                 d = km((k["lat"], k["lng"]), (e["lat"], e["lng"]))
                 if d < 0.05 and (best is None or d < best[0]):

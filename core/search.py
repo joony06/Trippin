@@ -7,11 +7,13 @@
 # v0.4 (2026-11-21) 카테고리를 고르면 하나도 맞지 않는 곳(S1=0)은 하드 필터로 뺌 (사용자 테스트 1번). 제외 목록에는 넣지 않음
 # v0.5 (2026-11-21) 다양성 보정 한도: 같은 대표 카테고리가 아무리 많아도 0.9^3까지만 곱함 (한희 수정사항 7번, 팀 결정)
 # v0.6 (2026-11-21) S6: 리뷰가 0개면 평점 부분은 0 (찜만 있는데 사이트 평균이 들어가던 문제), S2: 영문 이름·영문 설명도 검색 (대소문자 무시)
+# v0.7 (2026-11-21) S2: 한글 이름의 로마자도 검색 (외국인이 'kalguksu'로 찾으면 칼국수집이 걸리게, 띄어쓰기 무시)
 
 import math
 from dataclasses import dataclass, field
 
 from core.geo import DEFAULT_ORIGIN, haversine_km
+from core.romanize import romanize
 from core.reviews import (
     DEFAULT_SITE_AVG,
     GOOGLE_C,
@@ -117,6 +119,9 @@ def s2_query(place, query):
         return None
     ql = q.lower()
     if q in place["name"] or ql in (place.get("name_en") or "").lower():
+        return S2_NAME
+    if ql.isascii() and len(ql.replace(" ", "")) >= 3 and \
+            ql.replace(" ", "") in romanize(place["name"]).lower().replace(" ", ""):
         return S2_NAME
     for c in place["categories"]:
         # 검색어가 카테고리에 포함되거나, 검색어 안에 카테고리 이름이 있어도 인정 ('역사 명소' 등)

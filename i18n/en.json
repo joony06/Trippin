@@ -20,8 +20,8 @@
  "f_budget": "Budget (e.g. entry fees)",
  "f_budget_none": "No limit",
  "f_categories": "Categories",
- "f_query": "Keyword",
- "f_query_ph": "e.g. history, kalguksu",
+ "f_query": "Search places or dishes",
+ "f_query_ph": "Place name or dish (e.g. kalguksu, Sungsimdang)",
  "f_day": "Visit day",
  "f_time": "Visit time",
  "f_any": "Any",
@@ -124,11 +124,13 @@
  "not_owner": "Log in with a business account to view this.",
  "view_detail": "Details",
  "back_to_results": "Back to results",
- "footer": "Trippin · SKKU Problem Solving and Computing, Team 13",
+ "footer": "© 2026 최원준 · Trippin Team (김가연·김나연·박한희·최원준) · SKKU Problem Solving and Computing, Team 13",
  "showing_top": "Showing the top {n} places.",
  "photo_credit": "Photo: Korea Tourism Organization",
  "reason_franchise": "Large chain",
  "category_only_note": "Only places in the categories you chose are shown.",
  "no_info": "No information",
- "own_place_note": "This is your own store, so you cannot review or save it, and your visits are not counted."
+ "own_place_note": "This is your own store, so you cannot review or save it, and your visits are not counted.",
+ "query_as_category": "“{q}” was searched as a category. Type place names or dishes in the box, and pick types with the chips below.",
+ "map_loading": "Loading the map"
 }
