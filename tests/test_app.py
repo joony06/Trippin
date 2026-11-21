@@ -2,6 +2,7 @@
 #
 # 버전 기록
 # v0.1 (2026-11-21) 사업자 자기 가게 리뷰·찜 차단, 같은 날 반복 조회 1회·사업자 본인 조회 제외, 로그인 전 찜 → 로그인 후 처리
+# v0.2 (2026-11-22) 로그인·로그아웃을 해도 같은 날 같은 가게 조회는 1회만 세는지 확인
 #
 # 실행: python -m pytest -q
 
@@ -67,3 +68,15 @@ def test_like_before_login_is_kept_after_login(client):
     r = client.post(r.headers["Location"], data={"username": "demo_kr2", "password": PW})
     assert r.headers["Location"] == "/place/7?q=test"
     assert db.has_liked(_uid("demo_kr2"), 7)
+
+
+def test_view_is_counted_once_across_login_and_logout(client):
+    # 비로그인으로 보고 → 찜 → 로그인 → 같은 가게로 돌아와도, 로그아웃 후 다시 봐도 같은 날이면 1회
+    before = db.dashboard_stats(8)["total_views"]
+    client.get("/place/8")
+    r = client.post("/place/8/like", data={"next": "/place/8"})
+    r = client.post(r.headers["Location"], data={"username": "demo_kr3", "password": PW})
+    client.get(r.headers["Location"])
+    client.get("/logout")
+    client.get("/place/8")
+    assert db.dashboard_stats(8)["total_views"] == before + 1
