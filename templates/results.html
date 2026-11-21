@@ -1,65 +1,85 @@
 {% extends "base.html" %}
 {% block title %}{{ t('results_title') }}{% endblock %}
+{% block body_class %}page mapapp-page{% endblock %}
+{% block footer %}{% endblock %}
 {% block content %}
-<div class="split">
-  <div>
+<div class="mapapp">
+  <aside class="sheet">
+    {% set form_open = False %}
     {% include "_search_form.html" %}
-    {% if excluded %}
-    {# 제외된 곳은 기본으로 접어 둔다 (휴대폰에서 결과보다 위에 길게 나오지 않게). 누르면 펼쳐짐 #}
-    <details class="card">
-      <summary><strong>{{ t('excluded_title') }} ({{ excluded|length }})</strong></summary>
-      <ul class="excluded">
-        {% for p, reasons in excluded[:20] %}
-          <li>{{ p.name_en if lang != 'ko' and p.name_en else p.name }} — {% for r in reasons %}<span class="tag warn">{{ t('reason_' ~ r) }}</span>{% endfor %}</li>
-        {% endfor %}
-      </ul>
-      {% if excluded|length > 20 %}<p class="muted small">… +{{ excluded|length - 20 }}</p>{% endif %}
-    </details>
-    {% endif %}
-  </div>
-  <div>
+
     {# 카테고리 칩: 누르면 다른 조건은 그대로, 카테고리만 바꿔 다시 검색 #}
-    <nav class="chips cat-chips">
-      <a class="tag" href="{{ cat_all_url }}">{% if not cond.categories %}<strong>{{ t('cat_all') }}</strong>{% else %}{{ t('cat_all') }}{% endif %}</a>
+    <nav class="quick" aria-label="{{ t('f_categories') }}">
+      <a class="qchip {{ 'on' if not cond.categories }}" href="{{ cat_all_url }}">{{ t('cat_all') }}</a>
       {% for c, url in cat_links %}
-        <a class="tag" href="{{ url }}">{% if cond.categories == [c] %}<strong>{{ t('cat_' ~ c) }}</strong>{% else %}{{ t('cat_' ~ c) }}{% endif %}</a>
+        <a class="qchip {{ 'on' if cond.categories == [c] }}" href="{{ url }}">{{ t('cat_' ~ c) }}</a>
       {% endfor %}
     </nav>
-    {% include "_map.html" %}
-    <h2>{{ t('results_count', n=total) }}</h2>
-    {% if cond.categories %}<p class="muted small">{{ t('category_only_note') }}</p>{% endif %}
+
+    <div class="summary">
+      <h2>{{ t('results_count', n=total) }}</h2>
+      {% if cond.categories %}<p>{{ t('category_only_note') }}</p>{% endif %}
+      {% if total > ranked|length %}<p>{{ t('showing_top', n=ranked|length) }}</p>{% endif %}
+    </div>
+
     {# 동네별 요약: 누르면 그 동네 결과만 보기 #}
     {% if dong_links %}
-    <p class="small dong-summary">{{ t('dong_summary') }}:
-      <a href="{{ dong_all_url }}">{% if not dong %}<strong>{{ t('dong_all') }}</strong>{% else %}{{ t('dong_all') }}{% endif %}</a>
-      {% for d, n, url in dong_links %} · <a href="{{ url }}">{% if d == dong %}<strong>{{ t('dong_count', dong=d, n=n) }}</strong>{% else %}{{ t('dong_count', dong=d, n=n) }}{% endif %}</a>{% endfor %}
-    </p>
+    <nav class="quick dongs" aria-label="{{ t('dong_summary') }}">
+      <a class="qchip {{ 'on' if not dong }}" href="{{ dong_all_url }}">{{ t('dong_all') }}</a>
+      {% for d, n, url in dong_links %}
+        <a class="qchip {{ 'on' if d == dong }}" href="{{ url }}">{{ t('dong_count', dong=d, n=n) }}</a>
+      {% endfor %}
+    </nav>
+    {% if dong %}<p class="note">{{ t('dong_filter_note', dong=dong) }}</p>{% endif %}
     {% endif %}
-    {% if dong %}<p class="muted small">{{ t('dong_filter_note', dong=dong) }}</p>{% endif %}
-    {% if total > ranked|length %}<p class="muted small">{{ t('showing_top', n=ranked|length) }}</p>{% endif %}
-    {% if not ranked %}<p class="muted">{{ t('no_results') }}</p>{% endif %}
+
+    {% if ranked %}
+    {# 점수 구성 막대 범례: 막대 길이 = 총점, 색 = 기준별 기여 #}
+    <ul class="legend">
+      {% for k in WEIGHTS %}<li><i class="seg-{{ k }}"></i>{{ t(k) }}</li>{% endfor %}
+    </ul>
+    {% else %}
+    <p class="empty">{{ t('no_results') }}</p>
+    {% endif %}
+
     <ol class="results">
       {% for p in ranked %}
       <li>
         <a class="result" href="{{ url_for('place_detail', place_id=p.id, src='list', **args) }}">
-          <span class="rank">{{ p.rank }}</span>
+          <span class="rank"><b>{{ p.rank }}</b></span>
           <span class="body">
             {# 한국어가 아니면 영문 이름(name_en)이 있을 때 먼저 보여 주고, 원래 이름은 작게 덧붙인다 #}
             {% if lang != 'ko' and p.name_en %}
-            <strong>{{ p.name_en }}</strong> <span class="muted small">{{ p.name }}</span>
+            <strong>{{ p.name_en }}</strong> <span class="alt">{{ p.name }}</span>
             {% else %}
             <strong>{{ p.name }}</strong>
             {% endif %}
-            <span class="muted small">{% for c in p.categories %}{{ t('cat_' ~ c) }}{{ ' · ' if not loop.last }}{% endfor %} · {{ '%.1f'|format(p.distance_km) }} km</span>
+            <span class="meta">{% for c in p.categories %}{{ t('cat_' ~ c) }}{{ ', ' if not loop.last }}{% endfor %} · {{ '%.1f'|format(p.distance_km) }} km{% if p.google_rating %} · ★ {{ p.google_rating }}{% endif %}</span>
+            <span class="mix" title="{{ t('score_detail') }}">{% for k, v in p.result.contrib.items() %}{% if v %}<i class="seg-{{ k }}" style="width: {{ '%.2f'|format(v * 100) }}%"></i>{% endif %}{% endfor %}</span>
           </span>
           <span class="score">
-            <span>{{ '%.1f'|format(p.adjusted) }}<small> {{ t('points') }}</small></span>
-            {% if p.penalty_k %}<span class="small muted">({{ '%.1f'|format(p.result.total) }} × 0.9<sup>{{ p.penalty_k }}</sup>)</span>{% endif %}
+            <b>{{ '%.1f'|format(p.adjusted) }}</b>
+            {% if p.penalty_k %}<small>{{ '%.1f'|format(p.result.total) }} × 0.9<sup>{{ p.penalty_k }}</sup></small>{% else %}<small>{{ t('points') }}</small>{% endif %}
           </span>
         </a>
       </li>
       {% endfor %}
     </ol>
-  </div>
+
+    {% if excluded %}
+    {# 제외된 곳은 기본으로 접어 둔다 (휴대폰에서 결과보다 위에 길게 나오지 않게). 누르면 펼쳐짐 #}
+    <details class="excluded-box">
+      <summary>{{ t('excluded_title') }} ({{ excluded|length }})</summary>
+      <ul class="excluded">
+        {% for p, reasons in excluded[:20] %}
+          <li>{{ p.name_en if lang != 'ko' and p.name_en else p.name }} {% for r in reasons %}<span class="tag warn">{{ t('reason_' ~ r) }}</span>{% endfor %}</li>
+        {% endfor %}
+      </ul>
+      {% if excluded|length > 20 %}<p class="note">… +{{ excluded|length - 20 }}</p>{% endif %}
+    </details>
+    {% endif %}
+    <p class="sheet-foot">{{ t('footer') }}<br>{{ t('sample_notice') }}</p>
+  </aside>
+  <div class="mapwrap">{% include "_map.html" %}</div>
 </div>
 {% endblock %}

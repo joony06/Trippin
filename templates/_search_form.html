@@ -1,45 +1,48 @@
-<form class="search-card" action="{{ url_for('search_view') }}" method="get">
+<form class="search-card{{ ' compact' if not form_open }}" action="{{ url_for('search_view') }}" method="get">
   {# 현재 위치: 브라우저 위치를 숨은 칸 lat, lng에 넣어 보낸다. 대전 중구 밖이거나 못 받으면 서버가 기본 위치를 쓴다 #}
   {% set origin_keys = {'current': 'origin_current', 'outside': 'origin_outside'} %}
-  <p class="muted small" id="origin-note" data-state="{{ origin_state }}" data-located="{{ t('origin_located') }}">{{ t(origin_keys.get(origin_state, 'origin_note')) }}</p>
+  <p class="origin-note" id="origin-note" data-state="{{ origin_state }}" data-located="{{ t('origin_located') }}">{{ t(origin_keys.get(origin_state, 'origin_note')) }}</p>
   <input type="hidden" name="lat" id="origin-lat" value="{{ request.args.get('lat', '') if origin_state != 'default' }}">
   <input type="hidden" name="lng" id="origin-lng" value="{{ request.args.get('lng', '') if origin_state != 'default' }}">
-  <label>{{ t('f_query') }}
-    <input type="text" name="q" value="{{ cond.query }}" placeholder="{{ t('f_query_ph') }}">
-  </label>
-  <div class="row">
-    <label>{{ t('f_distance') }}
-      <select name="dist">
-        {% for d in distance_options %}<option value="{{ d }}" {{ 'selected' if cond.max_km == d }}>{{ d }} km</option>{% endfor %}
-      </select>
-    </label>
-    <label>{{ t('f_budget') }}
-      <select name="budget">
-        <option value="">{{ t('f_budget_none') }}</option>
-        {% for b in budget_options %}<option value="{{ b }}" {{ 'selected' if cond.budget == b }}>{{ t('free') if b == 0 else '{:,}'.format(b) ~ ' ' ~ t('won') }}</option>{% endfor %}
-      </select>
-    </label>
+  <div class="qbar">
+    <label class="sr" for="q">{{ t('f_query') }}</label>
+    <input id="q" type="text" name="q" value="{{ cond.query }}" placeholder="{{ t('f_query_ph') }}">
+    <button type="submit" class="btn">{{ t('f_submit') }}</button>
   </div>
-  <div class="row">
-    <label>{{ t('f_day') }}
-      <select name="day">
-        <option value="">{{ t('f_any') }}</option>
-        {% for i in range(7) %}<option value="{{ i }}" {{ 'selected' if cond.day == i }}>{{ t('day_' ~ i) }}</option>{% endfor %}
-      </select>
-    </label>
-    <label>{{ t('f_time') }}
-      <input type="time" name="time" value="{{ cond.time or '' }}">
-    </label>
-  </div>
-  <fieldset>
-    <legend>{{ t('f_categories') }}</legend>
+  <fieldset class="cats">
+    <legend class="sr">{{ t('f_categories') }}</legend>
     <div class="chips">
       {% for c in CATEGORIES %}
         <label class="chip"><input type="checkbox" name="cat" value="{{ c }}" {{ 'checked' if c in cond.categories }}><span>{{ t('cat_' ~ c) }}</span></label>
       {% endfor %}
     </div>
   </fieldset>
-  <button type="submit" class="btn">{{ t('f_submit') }}</button>
+  {# 거리·예산·요일·시각: 첫 화면에서는 펼치고, 결과 화면에서는 접어 둔다 #}
+  <details class="more" {{ 'open' if form_open }}>
+    <summary>{{ '%g'|format(cond.max_km) }} km · {{ t('f_budget_none') if cond.budget is none else (t('free') if cond.budget == 0 else '{:,}'.format(cond.budget) ~ ' ' ~ t('won')) }}{% if cond.day is not none %} · {{ t('day_' ~ cond.day) }}{% endif %}{% if cond.time %} {{ cond.time }}{% endif %}</summary>
+    <div class="row">
+      <label>{{ t('f_distance') }}
+        <select name="dist">
+          {% for d in distance_options %}<option value="{{ d }}" {{ 'selected' if cond.max_km == d }}>{{ d }} km</option>{% endfor %}
+        </select>
+      </label>
+      <label>{{ t('f_budget') }}
+        <select name="budget">
+          <option value="">{{ t('f_budget_none') }}</option>
+          {% for b in budget_options %}<option value="{{ b }}" {{ 'selected' if cond.budget == b }}>{{ t('free') if b == 0 else '{:,}'.format(b) ~ ' ' ~ t('won') }}</option>{% endfor %}
+        </select>
+      </label>
+      <label>{{ t('f_day') }}
+        <select name="day">
+          <option value="">{{ t('f_any') }}</option>
+          {% for i in range(7) %}<option value="{{ i }}" {{ 'selected' if cond.day == i }}>{{ t('day_' ~ i) }}</option>{% endfor %}
+        </select>
+      </label>
+      <label>{{ t('f_time') }}
+        <input type="time" name="time" value="{{ cond.time or '' }}">
+      </label>
+    </div>
+  </details>
 </form>
 <script>
   // 브라우저 위치 받기 (localhost·HTTPS에서만 동작). 거부·실패하면 숨은 칸을 비워 두어 기본 위치로 계산된다

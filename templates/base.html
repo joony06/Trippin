@@ -6,17 +6,20 @@
   <title>{% block title %}Trippin{% endblock %}</title>
   <link rel="icon" type="image/png" href="/favicon.png">
   <link rel="apple-touch-icon" href="/apple-touch-icon.png">
+  {# 글꼴: SUIT (둥근 기하학 고딕, 로고와 결이 맞음). 못 받으면 Pretendard → 기기 기본 글꼴 #}
+  <link rel="preconnect" href="https://cdn.jsdelivr.net">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/sun-typeface/SUIT@2/fonts/variable/woff2/SUIT-Variable.css">
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
   <link rel="stylesheet" href="/style.css">
 </head>
-<body>
+<body class="{% block body_class %}page{% endblock %}">
   <header class="topbar">
     <a href="{{ url_for('index') }}" class="brand"><img src="/logo-wordmark.png" alt="Trippin"></a>
     <nav>
       <a href="{{ url_for('index') }}">{{ t('nav_search') }}</a>
       {% if user %}
         {% if user.role == 'owner' %}<a href="{{ url_for('dashboard') }}">{{ t('nav_dashboard') }}</a>{% endif %}
-        <span class="who">{{ user.username }}</span>
+        <span class="who" title="{{ user.username }}">{{ user.username }}</span>
         <a href="{{ url_for('logout') }}">{{ t('nav_logout') }}</a>
       {% else %}
         <a href="{{ url_for('login') }}">{{ t('nav_login') }}</a>
@@ -30,7 +33,7 @@
     </nav>
   </header>
   <main>{% block content %}{% endblock %}</main>
-  <footer>{{ t('footer') }} · <span class="muted">{{ t('sample_notice') }}</span></footer>
+  {% block footer %}<footer>{{ t('footer') }}<br><span>{{ t('sample_notice') }}</span></footer>{% endblock %}
   {# 지도: 네이버 지도 키가 있으면 map.js가 네이버 지도를 불러오고, 없거나 실패하면 Leaflet(OSM)으로 그린다 #}
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
   <script>window.TRIPPIN_NAVER_MAP_KEY = {{ naver_map_client_id | tojson }};</script>

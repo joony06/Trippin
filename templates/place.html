@@ -2,12 +2,12 @@
 {% block title %}{{ place.name }}{% endblock %}
 {% block content %}
 {% set next_url = request.full_path %}
-{% if args %}<p><a href="{{ url_for('search_view', **args) }}">← {{ t('back_to_results') }}</a></p>{% endif %}
-<div class="split">
+{% if args %}<p class="back"><a href="{{ url_for('search_view', **args) }}">{{ t('back_to_results') }}</a></p>{% endif %}
+<div class="split detail">
   <div>
     <section class="card">
       {% if place.image %}<img class="place-photo" src="{{ place.image }}" alt="{{ place.name }}"><p class="small muted">{{ t('photo_credit') }}</p>{% endif %}
-      <h1>{{ place.name }}</h1>
+      <h1 class="place-name">{{ place.name }}</h1>
       {% if place.name_en and lang != 'ko' %}<p class="muted">{{ place.name_en }}</p>{% endif %}
       <p>{% for c in place.categories %}<span class="tag">{{ t('cat_' ~ c) }}</span>{% endfor %}</p>
       {% if lang != 'ko' and place.description_en %}<p>{{ place.description_en }}</p>{% elif place.description %}<p>{{ place.description }}</p>{% endif %}
@@ -17,7 +17,7 @@
         <dt>{{ t('hours') }}</dt>
         <dd>
           {% if place.hours %}
-            {% for i in range(7) %}{{ t('day_' ~ i) }} {{ place.hours.get(i|string) or t('closed') }}{{ ' · ' if not loop.last }}{% endfor %}
+            <ul class="hours">{% for i in range(7) %}<li><span>{{ t('day_' ~ i) }}</span>{{ place.hours.get(i|string) or t('closed') }}</li>{% endfor %}</ul>
           {% else %}-{% endif %}
         </dd>
         <dt>{{ t('google') }}</dt>
@@ -38,13 +38,15 @@
     {% if scored %}
     <section class="card">
       <h2>{{ t('score_detail') }}</h2>
+      <div class="bigscore"><b>{{ '%.1f'|format(scored.adjusted) }}</b><span>/ 100 {{ t('points') }}</span></div>
+      <span class="mix big">{% for k, v in scored.result.contrib.items() %}{% if v %}<i class="seg-{{ k }}" style="width: {{ '%.2f'|format(v * 100) }}%"></i>{% endif %}{% endfor %}</span>
       <table class="scores">
         <thead><tr><th>{{ t('criterion') }}</th><th>{{ t('raw_score') }}</th><th>{{ t('weight') }}</th><th>{{ t('contrib') }}</th></tr></thead>
         <tbody>
           {% for k in WEIGHTS %}
           {% set w = scored.result.weights.get(k) %}
           <tr class="{{ 'off' if w is none }}">
-            <td>{{ k|upper }} {{ t(k) }}</td>
+            <td><i class="key seg-{{ k }}"></i>{{ k|upper }} {{ t(k) }}</td>
             <td>{{ '%.3f'|format(scored.result.scores[k]) if w is not none else t('not_used') }}</td>
             <td>{{ '%.3f'|format(w) if w is not none else '-' }}</td>
             <td>{{ '%.3f'|format(scored.result.contrib[k]) if w is not none else '-' }}</td>

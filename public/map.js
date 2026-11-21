@@ -4,6 +4,7 @@
 // v0.2 (2026-11-19) 출발점을 #map-data의 origin에서 읽음 (현재 위치 반영). 형식: {"origin": [위도, 경도], "points": [...]}
 // v0.3 (2026-11-19) 네이버 지도로 교체. 키(NAVER_MAP_CLIENT_ID)가 없거나, 스크립트 로드 실패·인증 실패·시간 초과면
 //                   Leaflet(OSM) 지도(map_leaflet.js)로 자동 전환. 상세 화면에서는 그 장소 마커를 강조
+// v0.4 (2026-11-21) 최종 디자인: 핀을 물방울 모양(.pin, 선택은 .pin.on)으로, 기준점을 핀 끝(아래)으로
 //
 // 키는 서버가 환경 변수에서 읽어 base.html의 window.TRIPPIN_NAVER_MAP_KEY로 내려준다 (코드에 직접 쓰지 않음).
 (function () {
@@ -39,10 +40,13 @@
       params.set("src", p.src || "map");
       return "/place/" + p.id + "?" + params.toString();
     },
+    pinSize: function (p) { return p.rank ? (d.isSelected(p) ? 38 : 30) : (d.isSelected(p) ? 30 : 18); },
+    // 물방울 핀은 45도 돌린 네모라서, 핀 끝은 가운데에서 아래로 한 변 × 0.707 만큼 내려간 곳
+    pinAnchor: function (p) { var s = d.pinSize(p); return [s / 2, Math.round(s / 2 + s * 0.707)]; },
     pinHtml: function (p) {
-      // 강조 스타일은 임시 (최종 디자인은 일요일에 style.css에서)
-      var style = d.isSelected(p) ? ' style="width:34px;height:34px;background:#F06543;font-size:15px"' : "";
-      return '<span class="pin"' + style + ">" + esc(d.label(p)) + "</span>";
+      var s = d.pinSize(p);
+      return '<span class="pin' + (d.isSelected(p) ? " on" : "") + (p.rank ? "" : " dot") +
+             '" style="width:' + s + "px;height:" + s + 'px"><b>' + esc(p.rank ? d.label(p) : "") + "</b></span>";
     },
     popupHtml: function (p) { return '<a href="' + esc(d.href(p)) + '">' + esc(p.name) + "</a>"; }
   };
@@ -87,11 +91,11 @@
 
     var south = origin[0], north = origin[0], west = origin[1], east = origin[1];
     points.forEach(function (p) {
-      var size = d.isSelected(p) ? 34 : 28;
+      var anchor = d.pinAnchor(p);
       var marker = new nm.Marker({
         position: new nm.LatLng(p.lat, p.lng), map: map, title: p.name,
         zIndex: d.isSelected(p) ? 1000 : 100,
-        icon: { content: d.pinHtml(p), anchor: new nm.Point(size / 2, size / 2) }
+        icon: { content: d.pinHtml(p), anchor: new nm.Point(anchor[0], anchor[1]) }
       });
       nm.Event.addListener(marker, "click", function () {
         if (info.getMap() && info._trippinId === p.id) { info.close(); return; }
