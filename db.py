@@ -5,6 +5,8 @@
 # v0.2 (2026-11-18) 실제 데이터(data/places.json)가 있으면 샘플 대신 적재, 장소에 영문 이름·동·주소·사진·출처 열 추가
 # v0.3 (2026-11-18) 대형 프랜차이즈 여부(is_franchise) 열 추가
 # v0.4 (2026-11-19) 영문 설명문(description_en) 열 추가
+# v0.5 (2026-11-21) 업종 평균 조회수: 전체 기간 → 최근 7일, 조회가 있는 같은 업종 가게끼리 평균 (한희 수정사항 2번, 평균 0.0 문제)
+#                   장소를 새로 적재할 때 시연용 계정·조회 기록(data/seed_demo.py)도 함께 넣음 (Vercel 초기화 대비)
 #
 # 저장 위치
 # - 로컬: 프로젝트 폴더의 trippin.db (환경 변수 TRIPPIN_DB로 바꿀 수 있음)
@@ -104,6 +106,8 @@ def init_db(reset=False):
         count = conn.execute("SELECT COUNT(*) FROM places").fetchone()[0]
         if count == 0:
             load_places(conn, PLACES_PATH if os.path.exists(PLACES_PATH) else SAMPLE_PATH)
+            from data.seed_demo import seed  # 시연용 계정·조회 기록 (TRIPPIN_DEMO=0이면 건너뜀)
+            seed(conn)
 
 
 def load_places(conn, path):
@@ -283,8 +287,10 @@ def dashboard_stats(place_id, days=7):
             "SELECT COUNT(*) FROM likes WHERE place_id = ?", (place_id,)
         ).fetchone()[0]
         per_place = conn.execute(
-            """SELECT p.id, p.categories, (SELECT COUNT(*) FROM views v WHERE v.place_id = p.id) AS n
-               FROM places p"""
+            """SELECT p.id, p.categories,
+                      (SELECT COUNT(*) FROM views v WHERE v.place_id = p.id AND substr(v.created_at, 1, 10) >= ?) AS n
+               FROM places p""",
+            (since,),
         ).fetchall()
 
     by_day = {r["day"]: r["n"] for r in daily_rows}
@@ -296,7 +302,9 @@ def dashboard_stats(place_id, days=7):
     # 같은 업종(대표 카테고리) 평균 조회수
     mine = next(r for r in per_place if r["id"] == place_id)
     main_cat = json.loads(mine["categories"])[0]
-    same = [r["n"] for r in per_place if json.loads(r["categories"])[0] == main_cat]
+    # 최근 7일 동안 조회가 한 번이라도 있었던 같은 업종 가게끼리 평균 (수천 곳의 0을 섞으면 평균이 0에 가까워짐)
+    same = [r["n"] for r in per_place if r["n"] > 0 and r["id"] != place_id
+            and json.loads(r["categories"])[0] == main_cat]
     category_avg = sum(same) / len(same) if same else 0
 
     return {
