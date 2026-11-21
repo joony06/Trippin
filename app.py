@@ -15,6 +15,7 @@
 # v0.11 (2026-11-21) 검색어가 카테고리 이름(카페, cafe, 咖啡馆 등 4개 언어)이면 그 카테고리로 바꿔 검색 (검색어 칸에 '카페'를 쓰면 이름에 '카페'가 든 식당이 위에 오던 문제)
 # v0.12 (2026-11-21) 영어·중국어·일본어 화면: 영문 이름이 없는 가게·동네는 로마자로 표시 (place_name, dong_name)
 # v0.13 (2026-11-22) 로그인·로그아웃·가입 때 "오늘 본 가게" 기록을 지우지 않음 (로그인 전후로 같은 가게 조회가 두 번 세지던 문제, 김가연)
+# v0.14 (2026-11-22) `python app.py`로 바로 실행: 주소 안내·브라우저 자동 열기, 포트는 환경 변수 PORT (기본 5000)
 
 import os
 import re
@@ -414,4 +415,11 @@ def health():
 
 
 if __name__ == "__main__":
-    app.run(debug=True)
+    # VS Code에서 이 파일을 그냥 실행(▶)하거나 `python app.py`로 켜면 된다. 브라우저가 자동으로 열린다.
+    # (macOS에서 5000번이 AirPlay와 겹치면 환경 변수 PORT=5001 로 바꿔 실행)
+    import webbrowser
+    port = int(os.environ.get("PORT", "5000"))
+    if os.environ.get("WERKZEUG_RUN_MAIN") != "true":  # 자동 재시작 때 브라우저가 두 번 열리지 않게
+        print(f"트립핀 실행 중: http://127.0.0.1:{port}  (끄려면 Ctrl+C)")
+        webbrowser.open(f"http://127.0.0.1:{port}")
+    app.run(debug=True, port=port)
