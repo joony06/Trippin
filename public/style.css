@@ -4,6 +4,7 @@
  * v0.2 (2026-11-21) 최종 디자인 (시안 A+B): 지도가 화면을 채우고 왼쪽 패널에 검색·목록,
  *                   목록마다 점수 구성 막대(S1~S6), 핀은 로고의 물방울 모양, 글꼴 SUIT
  * v0.3 (2026-11-21) 로고 크게, 지도 로딩 화면, 하단(저작권·출처)을 모든 화면 맨 아래에 고정
+ * v0.4 (2026-11-21) 로고 한 번 더 키움 (42px, 휴대폰 34px)
  *
  * 색은 로고에서 가져온다: 남색(글자·핀), 파랑(행동 버튼), 하늘(현재 위치·선택), 연파랑(바탕 강조).
  * 강조색은 '행동(파랑)'과 '선택·위치(하늘)' 두 군데에만 쓴다.
@@ -21,7 +22,7 @@
   /* 점수 구성 막대: 비중이 큰 기준일수록 진한 색 */
   --s1: #0B1A4A; --s2: #1E5BD8; --s3: #2F86FF; --s4: #6FA8F5; --s5: #A9CBF7; --s6: #CFE1FB;
   --r-panel: 14px; --r-ctl: 10px;
-  --top: 64px;
+  --top: 68px;
   --foot: 36px;
   --ease: cubic-bezier(.2, .8, .2, 1);
 }
@@ -50,7 +51,7 @@ h1, h2, h3 { letter-spacing: -0.02em; line-height: 1.25; }
   padding: 0 20px; background: #fff; border-bottom: 1px solid var(--line);
 }
 .brand { display: block; padding: 4px 0; }
-.brand img { height: 36px; display: block; }
+.brand img { height: 42px; display: block; }
 .topbar nav { display: flex; align-items: center; gap: 16px; font-size: 14px; min-width: 0; }
 .topbar nav > a { color: var(--ink); font-weight: 600; }
 .who { color: var(--mute); max-width: 120px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
@@ -254,7 +255,7 @@ select, input[type=time] { font-weight: 500; }
 @media (max-width: 860px) {
   :root { --top: 56px; }
   .topbar { padding: 0 14px; gap: 10px; }
-  .brand img { height: 30px; }
+  .brand img { height: 34px; }
   .topbar nav { gap: 10px; font-size: 13px; overflow-x: auto; scrollbar-width: none; }
   .who, .topbar nav > a:first-child { display: none; }
   .topbar nav a { white-space: nowrap; }

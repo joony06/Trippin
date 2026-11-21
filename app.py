@@ -13,6 +13,7 @@
 # v0.10 (2026-11-21) 사용자 테스트 반영: 사업자는 자기 가게에 리뷰·찜 불가(5번), 사업자 본인 조회 제외·같은 사람 같은 날 조회는 1회(6번),
 #                    로그인 안 한 채 찜 → 로그인 후 보던 가게로 돌아오고 찜 처리(7번), 사업자 가입 가게 목록 가나다순, 지도 이름 외국어 화면은 영문
 # v0.11 (2026-11-21) 검색어가 카테고리 이름(카페, cafe, 咖啡馆 등 4개 언어)이면 그 카테고리로 바꿔 검색 (검색어 칸에 '카페'를 쓰면 이름에 '카페'가 든 식당이 위에 오던 문제)
+# v0.12 (2026-11-21) 영어·중국어·일본어 화면: 영문 이름이 없는 가게·동네는 로마자로 표시 (place_name, dong_name)
 
 import os
 import re
@@ -27,6 +28,7 @@ from werkzeug.security import check_password_hash, generate_password_hash
 import db
 from core.geo import resolve_origin
 from core.i18n import DEFAULT_LANG, LANGS, translate
+from core.romanize import romanize, romanize_dong
 from core.reviews import DEFAULT_SITE_AVG, summarize
 from core.search import WEIGHTS, Conditions, search
 
@@ -70,7 +72,16 @@ def inject_helpers():
 
     # 출발점은 모든 화면(검색 폼 문구·지도 출발점 표시)에서 같은 값을 쓴다
     origin, origin_state = resolve_origin(request.args.get("lat"), request.args.get("lng"))
-    return {"t": t, "lang": g.lang, "LANGS": LANGS, "user": g.user,
+    def place_name(p):
+        """한국어 화면은 한글 이름, 다른 언어는 영문 이름 → 없으면 로마자"""
+        if g.lang == "ko":
+            return p["name"]
+        return p.get("name_en") or romanize(p["name"])
+
+    def dong_name(d):
+        return d if g.lang == "ko" else romanize_dong(d)
+
+    return {"t": t, "lang": g.lang, "LANGS": LANGS, "user": g.user, "place_name": place_name, "dong_name": dong_name,
             "CATEGORIES": CATEGORIES, "WEIGHTS": WEIGHTS,
             "origin": origin, "origin_state": origin_state,
             "naver_map_client_id": NAVER_MAP_CLIENT_ID}
@@ -174,7 +185,7 @@ def search_args():
 
 def map_points(items, src):
     use_en = getattr(g, "lang", DEFAULT_LANG) != "ko"
-    return [{"id": p["id"], "name": (p.get("name_en") if use_en and p.get("name_en") else p["name"]),
+    return [{"id": p["id"], "name": ((p.get("name_en") or romanize(p["name"])) if use_en else p["name"]),
              "lat": p["lat"], "lng": p["lng"],
              "rank": p.get("rank"), "src": src} for p in items]
 

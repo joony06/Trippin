@@ -1,5 +1,5 @@
 {% extends "base.html" %}
-{% block title %}{{ place.name }}{% endblock %}
+{% block title %}{{ place_name(place) }}{% endblock %}
 {% block content %}
 {% set next_url = request.full_path %}
 {% if args %}<p class="back"><a href="{{ url_for('search_view', **args) }}">{{ t('back_to_results') }}</a></p>{% endif %}
@@ -7,8 +7,8 @@
   <div>
     <section class="card">
       {% if place.image %}<img class="place-photo" src="{{ place.image }}" alt="{{ place.name }}"><p class="small muted">{{ t('photo_credit') }}</p>{% endif %}
-      <h1 class="place-name">{{ place.name }}</h1>
-      {% if place.name_en and lang != 'ko' %}<p class="muted">{{ place.name_en }}</p>{% endif %}
+      <h1 class="place-name">{{ place_name(place) }}</h1>
+      {% if lang != 'ko' %}<p class="muted">{{ place.name }}</p>{% endif %}
       <p>{% for c in place.categories %}<span class="tag">{{ t('cat_' ~ c) }}</span>{% endfor %}</p>
       {% if lang != 'ko' and place.description_en %}<p>{{ place.description_en }}</p>{% elif place.description %}<p>{{ place.description }}</p>{% endif %}
       {% if place.address %}<p class="small muted">{{ place.address }}</p>{% endif %}

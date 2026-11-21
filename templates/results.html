@@ -27,10 +27,10 @@
     <nav class="quick dongs" aria-label="{{ t('dong_summary') }}">
       <a class="qchip {{ 'on' if not dong }}" href="{{ dong_all_url }}">{{ t('dong_all') }}</a>
       {% for d, n, url in dong_links %}
-        <a class="qchip {{ 'on' if d == dong }}" href="{{ url }}">{{ t('dong_count', dong=d, n=n) }}</a>
+        <a class="qchip {{ 'on' if d == dong }}" href="{{ url }}">{{ t('dong_count', dong=dong_name(d), n=n) }}</a>
       {% endfor %}
     </nav>
-    {% if dong %}<p class="note">{{ t('dong_filter_note', dong=dong) }}</p>{% endif %}
+    {% if dong %}<p class="note">{{ t('dong_filter_note', dong=dong_name(dong)) }}</p>{% endif %}
     {% endif %}
 
     {% if ranked %}
@@ -48,12 +48,8 @@
         <a class="result" href="{{ url_for('place_detail', place_id=p.id, src='list', **args) }}">
           <span class="rank"><b>{{ p.rank }}</b></span>
           <span class="body">
-            {# 한국어가 아니면 영문 이름(name_en)이 있을 때 먼저 보여 주고, 원래 이름은 작게 덧붙인다 #}
-            {% if lang != 'ko' and p.name_en %}
-            <strong>{{ p.name_en }}</strong> <span class="alt">{{ p.name }}</span>
-            {% else %}
-            <strong>{{ p.name }}</strong>
-            {% endif %}
+            {# 한국어가 아니면 영문 이름(없으면 로마자)을 먼저 보여 주고, 원래 한글 이름은 작게 덧붙인다 #}
+            <strong>{{ place_name(p) }}</strong>{% if lang != 'ko' %} <span class="alt">{{ p.name }}</span>{% endif %}
             <span class="meta">{% for c in p.categories %}{{ t('cat_' ~ c) }}{{ ', ' if not loop.last }}{% endfor %} · {{ '%.1f'|format(p.distance_km) }} km{% if p.google_rating %} · ★ {{ p.google_rating }}{% endif %}</span>
             <span class="mix" title="{{ t('score_detail') }}">{% for k, v in p.result.contrib.items() %}{% if v %}<i class="seg-{{ k }}" style="width: {{ '%.2f'|format(v * 100) }}%"></i>{% endif %}{% endfor %}</span>
           </span>
@@ -72,7 +68,7 @@
       <summary>{{ t('excluded_title') }} ({{ excluded|length }})</summary>
       <ul class="excluded">
         {% for p, reasons in excluded[:20] %}
-          <li>{{ p.name_en if lang != 'ko' and p.name_en else p.name }} {% for r in reasons %}<span class="tag warn">{{ t('reason_' ~ r) }}</span>{% endfor %}</li>
+          <li>{{ place_name(p) }} {% for r in reasons %}<span class="tag warn">{{ t('reason_' ~ r) }}</span>{% endfor %}</li>
         {% endfor %}
       </ul>
       {% if excluded|length > 20 %}<p class="note">… +{{ excluded|length - 20 }}</p>{% endif %}

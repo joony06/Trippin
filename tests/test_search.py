@@ -8,6 +8,7 @@
 # v0.5 (2026-11-21) 카테고리 하드 필터 테스트 추가: 고른 카테고리와 하나도 안 맞으면 제외, 안 고르면 모두 남김
 # v0.6 (2026-11-21) 다양성 보정 한도(0.9^3) 반영: 원래 방식 비교 함수에도 한도 적용, 한도 테스트 추가
 # v0.7 (2026-11-21) S6(리뷰 0개+찜)·S2(영문 검색어) 테스트 추가
+# v0.8 (2026-11-21) 로마자 변환·로마자 이름 검색 테스트 추가
 #
 # 실행: python -m pytest -q
 
@@ -203,3 +204,13 @@ def test_s2_matches_english_name_and_description():
     assert s.s2_query(p, "ppuri") == s.S2_NAME
     assert s.s2_query(p, "family names") == s.S2_DESCRIPTION
     assert s.s2_query(p, "museum") == 0.0
+
+
+def test_romanize_and_search_by_romanized_name():
+    from core.romanize import romanize, romanize_dong
+    assert romanize("미소본가스마일칼국수") == "Misobongaseumail Kalguksu"
+    assert romanize("성심당") == "Seongsimdang"
+    assert romanize_dong("대흥동") == "Daeheung-dong"
+    p = _place("한밭칼국수", ["음식"], "", None, None)
+    assert s.s2_query(p, "kalguksu") == s.S2_NAME
+    assert s.s2_query(p, "hanbat kalguksu") == s.S2_NAME
