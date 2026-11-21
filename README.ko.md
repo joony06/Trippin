@@ -1,5 +1,8 @@
 <p align="center">
-  <img src="public/logo-wordmark.png" alt="Trippin" width="420">
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset="public/logo-wordmark-card.png">
+    <img src="public/logo-wordmark-card.png" alt="Trippin" width="420">
+  </picture>
 </p>
 
 <p align="center">
