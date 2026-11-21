@@ -14,6 +14,7 @@
 #                    로그인 안 한 채 찜 → 로그인 후 보던 가게로 돌아오고 찜 처리(7번), 사업자 가입 가게 목록 가나다순, 지도 이름 외국어 화면은 영문
 # v0.11 (2026-11-21) 검색어가 카테고리 이름(카페, cafe, 咖啡馆 등 4개 언어)이면 그 카테고리로 바꿔 검색 (검색어 칸에 '카페'를 쓰면 이름에 '카페'가 든 식당이 위에 오던 문제)
 # v0.12 (2026-11-21) 영어·중국어·일본어 화면: 영문 이름이 없는 가게·동네는 로마자로 표시 (place_name, dong_name)
+# v0.13 (2026-11-22) 로그인·로그아웃·가입 때 "오늘 본 가게" 기록을 지우지 않음 (로그인 전후로 같은 가게 조회가 두 번 세지던 문제, 김가연)
 
 import os
 import re
@@ -279,6 +280,17 @@ def should_log_view(place_id):
     return True
 
 
+def reset_session(user_id=None):
+    """로그인·로그아웃·가입 때 세션을 새로 만든다. 언어와 '오늘 본 가게' 기록(조회수 중복 방지)은 남긴다."""
+    lang, viewed = g.lang, session.get("viewed", [])
+    session.clear()
+    session["lang"] = lang
+    if viewed:
+        session["viewed"] = viewed
+    if user_id is not None:
+        session["user_id"] = user_id
+
+
 def back_to_place(place_id):
     # 리뷰·찜 후 원래 보던 상세 화면(검색 조건 포함)으로 돌아간다
     target = request.form.get("next") or ""
@@ -336,9 +348,7 @@ def signup():
             uid = db.create_user(username, generate_password_hash(password),
                                  nationality if nationality in NATIONALITIES else "OTHER",
                                  role, owner_place_id)
-            session.clear()
-            session["user_id"] = uid
-            session["lang"] = g.lang
+            reset_session(uid)
             return redirect(url_for("index"))
     return render_template("signup.html", error=error, places=places, nationalities=NATIONALITIES)
 
@@ -349,11 +359,8 @@ def login():
     if request.method == "POST":
         user = db.get_user_by_name((request.form.get("username") or "").strip())
         if user and check_password_hash(user["pw_hash"], request.form.get("password") or ""):
-            lang = g.lang
             pending = session.get("pending_like")
-            session.clear()
-            session["user_id"] = user["id"]
-            session["lang"] = lang
+            reset_session(user["id"])
             # 로그인 전에 누른 찜을 이어서 처리 (이미 찜했거나 자기 가게면 그대로 둔다)
             if pending and db.get_place(pending) and not db.has_liked(user["id"], pending) \
                     and not (user["role"] == "owner" and user["owner_place_id"] == pending):
@@ -367,9 +374,7 @@ def login():
 
 @app.route("/logout")
 def logout():
-    lang = g.lang
-    session.clear()
-    session["lang"] = lang
+    reset_session()
     return redirect(url_for("index"))
 
 
