@@ -26,6 +26,7 @@
     </nav>
     {% include "_map.html" %}
     <h2>{{ t('results_count', n=total) }}</h2>
+    {% if cond.categories %}<p class="muted small">{{ t('category_only_note') }}</p>{% endif %}
     {# 동네별 요약: 누르면 그 동네 결과만 보기 #}
     {% if dong_links %}
     <p class="small dong-summary">{{ t('dong_summary') }}:

@@ -4,6 +4,7 @@
 # v0.1 (2026-11-18) 중간보고서 계산식으로 필터링 검색 전체 흐름 작성
 # v0.2 (2026-11-18) 다양성 보정 속도 개선: 카테고리별 정렬 목록에서 맨 앞만 비교 (결과는 같고, 수천 곳에서도 빠름)
 # v0.3 (2026-11-18) 하드 필터에 대형 프랜차이즈 제외 추가 (팀 결정: 대기업 계열 + 대형 프랜차이즈 제외)
+# v0.4 (2026-11-21) 카테고리를 고르면 하나도 맞지 않는 곳(S1=0)은 하드 필터로 뺌 (사용자 테스트 1번). 제외 목록에는 넣지 않음
 
 import math
 from dataclasses import dataclass, field
@@ -71,7 +72,11 @@ def is_open(hours, day, time):
 def hard_filter(places, cond):
     """조건에 안 맞는 곳을 점수 계산 전에 뺀다. (남은 곳, [(뺀 곳, 이유들)])"""
     kept, excluded = [], []
+    chosen = set(cond.categories or [])
     for p in places:
+        # 카테고리를 골랐는데 하나도 맞지 않으면 뺀다. 수천 곳이라 제외 목록(화면)에는 넣지 않는다
+        if chosen and not chosen & set(p.get("categories") or []):
+            continue
         d = haversine_km(cond.origin[0], cond.origin[1], p["lat"], p["lng"])
         reasons = []
         if d > cond.max_km:

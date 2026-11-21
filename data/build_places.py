@@ -7,6 +7,9 @@
 # v0.4 (2026-11-18) 빵/도넛·떡/한과·아이스크림/빙수는 카테고리를 [카페, 음식]으로 (카페로 찾아도 S1 점수를 받도록)
 # v0.5 (2026-11-19) Gemini 설명문(data/descriptions.json)과 구글 평점·리뷰 수·영업시간(data/raw/google_raw.json) 합치기
 # v0.6 (2026-11-19) 구글 캐시가 검색 결과 원본이 되어, 매칭은 collect_google.best_match로 여기서 판정
+# v0.7 (2026-11-21) 검수표 반영: 가게별 판정(store_verdicts.json: 대기업·대형체인·기관)을 덮어씀, 대형체인 브랜드 목록(chain_brands.txt),
+#                   철자 다른 브랜드 표기(바게트/바게뜨, 베스킨/배스킨) 맞춤, 관광지 이름으로 역사·자연·야경 카테고리 보강,
+#                   요금은 모르는 값이라 0 대신 None(화면에 '정보 없음'). 이미 만든 places.json에만 적용: --apply-only
 #
 # 실행 (프로젝트 루트에서, collect_sbiz.py·collect_tour.py를 먼저 실행):
 #   python data/build_places.py
@@ -26,6 +29,8 @@ sys.path.insert(0, HERE)
 RAW = os.path.join(HERE, "raw")
 OUT = os.path.join(HERE, "places.json")
 BRANDS = os.path.join(HERE, "conglomerate_brands.txt")
+CHAINS = os.path.join(HERE, "chain_brands.txt")          # 대형 체인 브랜드 (대기업 집단은 아님)
+VERDICTS = os.path.join(HERE, "store_verdicts.json")    # 검수표 가게별 판정
 DESCRIPTIONS = os.path.join(HERE, "descriptions.json")   # gen_descriptions.py 결과 (저장소에 올림)
 GOOGLE = os.path.join(RAW, "google_raw.json")             # collect_google.py 결과 (저장소에 안 올림)
 
@@ -85,10 +90,23 @@ TOUR_LCLS_CATEGORY = {   # 신분류체계 대분류
 }
 
 
+# 같은 브랜드를 다르게 적은 상호 (상가정보 원본 철자) → 브랜드 목록 철자
+BRAND_SPELLING = {"바게트": "바게뜨", "베스킨": "배스킨"}
+
+# 관광지 이름에 이 단어가 있으면 카테고리를 앞에 붙인다 (TourAPI 분류만으로는 역사 8곳·자연 3곳·야경 0곳이라)
+TOUR_NAME_CATEGORY = [
+    ("역사", ["기념관", "전시관", "사당", "생가", "서원", "향교", "종가", "마애", "숭절사", "유적", "고택"]),
+    ("자연", ["공원", "숲", "산", "둘레길", "수목원", "계곡"]),
+    ("야경", ["전망대", "스카이로드", "으능정이", "볼파크"]),
+]
+
+
 def norm_name(s):
-    """비교용 이름: 괄호 내용·공백·지점 표기 제거"""
+    """비교용 이름: 괄호 내용·공백·지점 표기 제거, 브랜드 철자 맞춤"""
     s = re.sub(r"\(.*?\)", "", s or "")
     s = re.sub(r"\s+", "", s)
+    for wrong, right in BRAND_SPELLING.items():
+        s = s.replace(wrong, right)
     return s.replace("본점", "").lower()
 
 
@@ -103,11 +121,48 @@ def dong_from_address(addr):
     return m.group(1) if m else None
 
 
-def load_brands():
-    if not os.path.exists(BRANDS):
+def load_brands(path=BRANDS):
+    if not os.path.exists(path):
         return []
-    with open(BRANDS, encoding="utf-8") as f:
+    with open(path, encoding="utf-8") as f:
         return [line.strip() for line in f if line.strip() and not line.startswith("#")]
+
+
+def tour_categories(name, cats):
+    """관광지(음식·쇼핑 제외) 이름으로 역사·자연·야경을 앞에 붙인다. 순서: 역사 → 자연 → 기존 → 야경"""
+    if "음식" in cats or "쇼핑" in cats:
+        return cats
+    hit = {cat for cat, words in TOUR_NAME_CATEGORY if any(w in name for w in words)} | set(cats)
+    front = [c for c in ("역사", "자연") if c in hit]
+    back = ["야경"] if "야경" in hit and "야경" not in cats else []
+    return front + [c for c in cats if c not in front] + back
+
+
+def apply_overrides(places):
+    """브랜드 목록·검수표 판정·카테고리 보강·요금을 적용한다. 기관으로 판정된 곳은 뺀다. (남은 곳, 판정 반영 수, 기관 제외 수)"""
+    brands, chains = load_brands(BRANDS), load_brands(CHAINS)
+    verdicts = {}
+    if os.path.exists(VERDICTS):
+        with open(VERDICTS, encoding="utf-8") as f:
+            verdicts = json.load(f).get("verdicts", {})
+    out, n_verdict, n_org = [], 0, 0
+    for p in places:
+        p["is_conglomerate"] = is_conglomerate(p["name"], brands)
+        p["is_franchise"] = bool(p.get("is_franchise")) or any(norm_name(p["name"]).startswith(norm_name(c)) for c in chains)
+        p["fee"] = None  # 요금 정보는 수집하지 않았다 (0원으로 두면 '무료'로 잘못 보임)
+        if p["source"] == "tour":
+            p["categories"] = tour_categories(p["name"], p["categories"])
+        v = verdicts.get(f"{p['source']}:{p.get('source_id')}", {}).get("verdict")
+        if v == "기관":
+            n_org += 1
+            continue
+        if v == "대기업":
+            p["is_conglomerate"], p["is_franchise"] = True, False
+        elif v == "대형체인":
+            p["is_conglomerate"], p["is_franchise"] = False, True
+        n_verdict += bool(v)
+        out.append(p)
+    return out, n_verdict, n_org
 
 
 def is_conglomerate(name, brands):
@@ -262,13 +317,14 @@ def build():
             "source_id": s.get("source_id"),
         })
 
+    places, n_verdict, n_org = apply_overrides(places)
     for i, p in enumerate(places, start=1):
         p["id"] = i
     n_desc, n_google = merge_extras(places)
 
     out = {
         "_note": "data/build_places.py로 만든 파일. 출처: 소상공인시장진흥공단 상가(상권)정보, 한국관광공사 TourAPI. "
-                 "영업시간·요금·구글 평점은 아직 비어 있음.",
+                 "요금은 수집하지 않음(None). 구글 평점·영업시간은 일부 장소만.",
         "places": places,
     }
     with open(OUT, "w", encoding="utf-8") as f:
@@ -279,9 +335,23 @@ def build():
           f"(겹쳐서 뺀 상가 {skipped_dup}곳, 기관·구내식당 제외 {skipped_org}곳, 대기업 계열 {sum(p['is_conglomerate'] for p in places)}곳, "
           f"대형 프랜차이즈 {sum(p['is_franchise'] and not p['is_conglomerate'] for p in places)}곳(브랜드 {len(big)}개 기준), "
           f"영문 이름 {sum(1 for p in places if p['name_en'])}곳)")
-    print(f"설명문 {n_desc}곳, 구글 평점·영업시간 {n_google}곳 합침")
+    print(f"설명문 {n_desc}곳, 구글 평점·영업시간 {n_google}곳 합침, 검수표 판정 {n_verdict}곳 반영(기관 {n_org}곳 뺌)")
     print(f"저장: {OUT}")
 
 
+def apply_only():
+    """원본(raw) 없이, 이미 있는 places.json에 브랜드·판정·카테고리·요금만 다시 적용한다."""
+    with open(OUT, encoding="utf-8") as f:
+        data = json.load(f)
+    places, n_verdict, n_org = apply_overrides(data["places"])
+    for i, p in enumerate(places, start=1):
+        p["id"] = i
+    data["places"] = places
+    with open(OUT, "w", encoding="utf-8") as f:
+        json.dump(data, f, ensure_ascii=False, indent=1)
+    print(f"{len(places)}곳 (검수표 판정 {n_verdict}곳 반영, 기관 {n_org}곳 뺌, 대기업 {sum(p['is_conglomerate'] for p in places)}곳, "
+          f"대형체인 {sum(p['is_franchise'] and not p['is_conglomerate'] for p in places)}곳)")
+
+
 if __name__ == "__main__":
-    build()
+    apply_only() if "--apply-only" in sys.argv else build()
