@@ -1,6 +1,8 @@
 {% extends "base.html" %}
 {% block title %}{{ t('results_title') }}{% endblock %}
 {% block body_class %}page mapapp-page{% endblock %}
+{# 지도 화면: 하단을 창에 고정하지 않고 왼쪽 패널 맨 아래에 둔다 (지도를 화면 끝까지) #}
+{% block footer %}{% endblock %}
 {% block content %}
 <div class="mapapp">
   <aside class="sheet">
@@ -74,6 +76,7 @@
       {% if excluded|length > 20 %}<p class="note">… +{{ excluded|length - 20 }}</p>{% endif %}
     </details>
     {% endif %}
+    <footer class="sheet-foot">{% include "_foot.html" %}</footer>
   </aside>
   <div class="mapwrap">{% include "_map.html" %}</div>
 </div>
