@@ -4,13 +4,23 @@
 // v0.2 (2026-11-19) 출발점을 #map-data의 origin에서 읽음 (현재 위치 반영)
 // v0.3 (2026-11-19) 네이버 지도 폴백 파일로 분리. map.js가 키가 없거나 네이버 지도 로드에 실패하면 이 함수를 부른다
 // v0.4 (2026-11-21) 최종 디자인: 물방울 핀, 기준점을 핀 끝으로 (map.js의 pinAnchor)
+// v0.5 (2026-11-21) 서비스 지역 밖 어둡게, 대전 전체 정도까지만 축소·이동
 //
 // TrippinMap.leaflet(el, d)  d: map.js가 만든 공통 데이터 (origin, points, label, href, isSelected, pinHtml, popupHtml)
 window.TrippinMap = window.TrippinMap || {};
 window.TrippinMap.leaflet = function (el, d) {
   if (typeof L === "undefined") return false;
 
-  var map = L.map(el).setView(d.origin, 14);
+  var map = L.map(el, { minZoom: d.MIN_ZOOM }).setView(d.origin, 14);
+  d.withArea(function (a) {
+    L.polygon([d.WORLD, a.junggu], {
+      interactive: false, fillColor: d.MASK.fill, fillOpacity: d.MASK.fillOpacity,
+      color: d.MASK.stroke, weight: d.MASK.weight, opacity: 0.9
+    }).addTo(map);
+    var b = a.daejeon_bounds;
+    map.setMaxBounds(L.latLngBounds(b).pad(0.3));
+    map.options.maxBoundsViscosity = 0.8;
+  });
   L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
     maxZoom: 19,
     attribution: "&copy; OpenStreetMap contributors"

@@ -6,6 +6,7 @@
 //                   Leaflet(OSM) 지도(map_leaflet.js)로 자동 전환. 상세 화면에서는 그 장소 마커를 강조
 // v0.4 (2026-11-21) 최종 디자인: 핀을 물방울 모양(.pin, 선택은 .pin.on)으로, 기준점을 핀 끝(아래)으로
 // v0.5 (2026-11-21) 지도 로딩 화면(#map-loading): 지도가 실제로 그려진 뒤에 숨김 (네이버 인증 실패 화면이 잠깐 보이던 문제)
+// v0.6 (2026-11-21) 서비스 지역(대전 중구) 밖을 어둡게 칠하고 경계선 표시, 대전 전체가 보이는 정도까지만 축소 (public/service_area.json)
 //
 // 키는 서버가 환경 변수에서 읽어 base.html의 window.TRIPPIN_NAVER_MAP_KEY로 내려준다 (코드에 직접 쓰지 않음).
 (function () {
@@ -31,7 +32,18 @@
     return String(s).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
   }
 
+  // 서비스 지역 경계: 불러오면 기다리던 지도에 그린다
+  var area = null, waiting = [];
+  fetch("/service_area.json").then(function (r) { return r.json(); }).then(function (a) {
+    area = a; waiting.forEach(function (cb) { cb(a); }); waiting = [];
+  }).catch(function () { /* 경계가 없어도 지도는 그대로 쓴다 */ });
+
   var d = {
+    // 지도 전체를 덮는 큰 사각형 + 중구 경계(구멍) → 중구 밖만 어둡게
+    WORLD: [[33.0, 124.0], [33.0, 132.0], [39.0, 132.0], [39.0, 124.0]],
+    MIN_ZOOM: 11,  // 대전 전체가 한 화면에 보이는 정도까지만 축소
+    MASK: { fill: "#1B2440", fillOpacity: 0.28, stroke: "#1E5BD8", weight: 2 },
+    withArea: function (cb) { if (area) cb(area); else waiting.push(cb); },
     origin: origin,
     points: points,
     isSelected: function (p) { return selectedId !== null && p.id === selectedId; },
@@ -83,7 +95,17 @@
     var nm = naver.maps;
 
     var center = new nm.LatLng(origin[0], origin[1]);
-    var map = new nm.Map(el, { center: center, zoom: 14 });
+    var map = new nm.Map(el, { center: center, zoom: 14, minZoom: d.MIN_ZOOM });
+    d.withArea(function (a) {
+      var ll = function (p) { return new nm.LatLng(p[0], p[1]); };
+      new nm.Polygon({
+        map: map, paths: [d.WORLD.map(ll), a.junggu.map(ll)], clickable: false, zIndex: 1,
+        fillColor: d.MASK.fill, fillOpacity: d.MASK.fillOpacity,
+        strokeColor: d.MASK.stroke, strokeWeight: d.MASK.weight, strokeOpacity: 0.9
+      });
+      var b = a.daejeon_bounds;
+      map.setOptions("maxBounds", new nm.LatLngBounds(ll([b[0][0] - 0.05, b[0][1] - 0.08]), ll([b[1][0] + 0.05, b[1][1] + 0.08])));
+    });
     var info = new nm.InfoWindow({ content: "", borderWidth: 1, disableAnchor: false });
 
     // 출발점 (현재 위치 또는 대전 중구청 앞)
