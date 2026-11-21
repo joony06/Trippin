@@ -7,6 +7,7 @@
 // v0.4 (2026-11-21) 최종 디자인: 핀을 물방울 모양(.pin, 선택은 .pin.on)으로, 기준점을 핀 끝(아래)으로
 // v0.5 (2026-11-21) 지도 로딩 화면(#map-loading): 지도가 실제로 그려진 뒤에 숨김 (네이버 인증 실패 화면이 잠깐 보이던 문제)
 // v0.6 (2026-11-21) 서비스 지역(대전 중구) 밖을 어둡게 칠하고 경계선 표시, 대전 전체가 보이는 정도까지만 축소 (public/service_area.json)
+// v0.7 (2026-11-21) 최소 축소 단계를 고정값(11) 대신 지도 칸 크기에 맞춰 계산 (대전광역시가 꽉 차게 보이는 단계)
 //
 // 키는 서버가 환경 변수에서 읽어 base.html의 window.TRIPPIN_NAVER_MAP_KEY로 내려준다 (코드에 직접 쓰지 않음).
 (function () {
@@ -44,6 +45,14 @@
     MIN_ZOOM: 11,  // 대전 전체가 한 화면에 보이는 정도까지만 축소
     MASK: { fill: "#1B2440", fillOpacity: 0.28, stroke: "#1E5BD8", weight: 2 },
     withArea: function (cb) { if (area) cb(area); else waiting.push(cb); },
+    // 지도 칸(px)에 대전 범위가 꽉 차게 들어가는 확대 단계 (웹 메르카토르: 0단계에서 세계 = 256px)
+    fitZoom: function (box, b) {
+      var w = box.clientWidth || 800, h = box.clientHeight || 600;
+      var y = function (lat) { var s = Math.sin(lat * Math.PI / 180); return Math.log((1 + s) / (1 - s)) / (4 * Math.PI); };
+      var zx = Math.log2(w * 360 / (256 * (b[1][1] - b[0][1])));
+      var zy = Math.log2(h / (256 * (y(b[1][0]) - y(b[0][0]))));
+      return Math.max(8, Math.floor(Math.min(zx, zy)));
+    },
     origin: origin,
     points: points,
     isSelected: function (p) { return selectedId !== null && p.id === selectedId; },
@@ -95,7 +104,7 @@
     var nm = naver.maps;
 
     var center = new nm.LatLng(origin[0], origin[1]);
-    var map = new nm.Map(el, { center: center, zoom: 14, minZoom: d.MIN_ZOOM });
+    var map = new nm.Map(el, { center: center, zoom: 14, minZoom: d.MIN_ZOOM });  // 경계를 불러오면 칸 크기에 맞춰 다시 정함
     d.withArea(function (a) {
       var ll = function (p) { return new nm.LatLng(p[0], p[1]); };
       new nm.Polygon({
@@ -104,7 +113,10 @@
         strokeColor: d.MASK.stroke, strokeWeight: d.MASK.weight, strokeOpacity: 0.9
       });
       var b = a.daejeon_bounds;
-      map.setOptions("maxBounds", new nm.LatLngBounds(ll([b[0][0] - 0.05, b[0][1] - 0.08]), ll([b[1][0] + 0.05, b[1][1] + 0.08])));
+      map.setOptions("maxBounds", new nm.LatLngBounds(ll([b[0][0] - 0.02, b[0][1] - 0.03]), ll([b[1][0] + 0.02, b[1][1] + 0.03])));
+      var minZ = d.fitZoom(el, b);
+      map.setOptions("minZoom", minZ);
+      if (map.getZoom() < minZ) map.setZoom(minZ);
     });
     var info = new nm.InfoWindow({ content: "", borderWidth: 1, disableAnchor: false });
 
