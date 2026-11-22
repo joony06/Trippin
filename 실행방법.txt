@@ -1,0 +1,33 @@
+트립핀(Trippin) 실행 방법 — 문제해결과컴퓨팅 13팀
+
+[필요한 것]
+Python 3.10 이상, Flask
+
+[실행]
+1. 이 폴더에서 터미널을 연다.
+2. pip install flask        (Mac에서 pip가 없다고 나오면 pip3 install flask)
+3. python app.py            (Mac은 python3 app.py)
+   → 브라우저가 자동으로 열린다. 안 열리면 터미널에 나온 주소(http://127.0.0.1:5000)를 연다.
+   → VS Code에서는 app.py를 열고 오른쪽 위 ▶(Run Python File)를 눌러도 된다.
+   → 끄려면 터미널에서 Ctrl+C
+
+[참고]
+- 처음 실행하면 trippin.db 파일이 자동으로 만들어진다. 처음 상태로 되돌리려면 trippin.db를 지우고 다시 실행.
+- 5000번 포트를 다른 프로그램이 쓰고 있으면 5001, 5002 … 중 비어 있는 번호로 켜진다.
+- 지도 API 키가 없으므로 지도는 OpenStreetMap으로 나온다 (배포 사이트는 네이버 지도).
+- 인터넷 연결이 있어야 지도 그림과 글꼴이 나온다.
+
+[시연용 계정] 비밀번호는 모두 trippin-demo
+- 사업자: demo_owner  → 위쪽 메뉴의 '내 가게 대시보드'
+- 관광객: demo_kr1, demo_us1, demo_jp1 등
+
+[테스트]
+python tests/test_trippin.py     (22개 통과)
+
+[파일]
+app.py       실행 파일, 화면 주소
+search.py    필터링 검색 (하드 필터 → S1~S6 → 정렬·다양성 보정)
+database.py  저장·조회, 대시보드 집계, 시연용 데이터
+texts.py     4개 언어 번역, 로마자 변환
+data/places.json   장소 3,484곳
+data/tools/        데이터를 만든 스크립트 (API 키가 필요해 실행하지 않아도 됨)

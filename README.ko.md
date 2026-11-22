@@ -73,7 +73,7 @@ $$S = 100 \times \sum_{i=1}^{6} w_i \cdot s_i$$
 | Gemini API | TourAPI 개요로 짧은 한국어·영어 소개문 생성 |
 | 팀 검수표 | 3,490곳을 사람이 직접 확인 (대기업·대형 체인·기관) |
 
-`data/build_places.py`가 모두 합쳐 `data/places.json`을 만듭니다. 수집 스크립트는 API 키가 필요해 로컬에서만 실행합니다.
+`data/tools/build_places.py`가 모두 합쳐 `data/places.json`을 만듭니다. 수집 스크립트는 API 키가 필요해 로컬에서만 실행합니다.
 
 ## 기술 스택
 
@@ -89,46 +89,43 @@ $$S = 100 \times \sum_{i=1}^{6} w_i \cdot s_i$$
 
 ```
 Trippin/
-├─ app.py                  # Flask 화면 주소 (Vercel이 여기서 `app`을 찾음)
-├─ db.py                   # SQLite 테이블·조회·대시보드 집계
-├─ core/
-│  ├─ search.py            # 하드 필터 → S1~S6 → 정렬·다양성 보정
-│  ├─ reviews.py           # 베이지안 보정 평점
-│  ├─ geo.py               # 거리, 출발점
-│  ├─ romanize.py          # 외국어 화면용 한글 → 로마자
-│  └─ i18n.py              # 번역 문구
+├─ app.py                  # 실행 파일. 화면 주소(라우트)마다 무엇을 보여 줄지 (Vercel도 여기서 `app`을 찾음)
+├─ search.py               # 필터링 검색: 하드 필터 → S1~S6 → 정렬·다양성 보정, 거리·베이지안 보정
+├─ database.py             # SQLite 저장·조회, 대시보드 집계, 데모 계정·데이터
+├─ texts.py                # 한·영·중·일 번역 문구, 한글 → 로마자
 ├─ data/
-│  ├─ collect_sbiz.py      # 상가정보 수집
-│  ├─ collect_tour.py      # TourAPI 수집
-│  ├─ collect_google.py    # 구글 평점·영업시간
-│  ├─ gen_descriptions.py  # Gemini 소개문
-│  ├─ build_places.py      # 합치기 → places.json
-│  ├─ seed_demo.py         # 데모 계정·대시보드 데이터
-│  ├─ places.json          # 완성된 장소 데이터 (저장소에 올림)
-│  └─ store_verdicts.json  # 팀 검수 결과
-├─ i18n/                   # 한·영·중·일 화면 문구
-├─ templates/              # 화면
-├─ public/                 # CSS, 지도 스크립트, 로고 (Vercel CDN)
-├─ tests/                  # 테스트 21개 (중간보고서 예시 A 67.6점·B 46.3점 재현 포함)
+│  ├─ places.json          # 완성된 장소 데이터 3,484곳 (실행에 필요한 유일한 데이터)
+│  ├─ store_verdicts.json  # 팀 검수 결과
+│  ├─ conglomerate_brands.txt, chain_brands.txt   # 대기업·대형 체인 브랜드
+│  ├─ descriptions.json    # Gemini 소개문
+│  └─ tools/               # 데이터를 만든 스크립트 (API 키 필요, 실행에는 필요 없음)
+│     ├─ apiutil.py        #   공통 도구 (.env, API 호출)
+│     ├─ collect_sbiz.py   #   상가정보 수집
+│     ├─ collect_tour.py   #   TourAPI 수집
+│     ├─ collect_google.py #   구글 평점·영업시간
+│     ├─ gen_descriptions.py # Gemini 소개문
+│     └─ build_places.py   #   합치기 → places.json
+├─ i18n/                   # 화면 문구 (ko·en·zh·ja.json)
+├─ templates/              # 화면 (HTML)
+├─ public/                 # CSS, 지도 스크립트, 서비스 지역 경계, 로고 (Vercel CDN)
+├─ tests/test_trippin.py   # 테스트 22개 (중간보고서 예시 A 67.6점·B 46.3점 재현 포함)
 └─ docs/handoff/           # 팀 인수인계 문서
 ```
 
 ## 로컬 실행
 
+Python 3.10 이상이 필요합니다.
+
 ```bash
-git clone https://github.com/joony06/Trippin.git
-cd Trippin
-
-python3 -m venv .venv
-source .venv/bin/activate        # Windows: .venv\Scripts\activate
-pip install -r requirements.txt
-
-flask --app app run --debug      # http://localhost:5000
+pip install flask
+python app.py                    # 브라우저가 자동으로 열립니다 (http://127.0.0.1:5000)
 ```
 
-- 처음 실행하면 `data/places.json`과 데모 데이터로 DB가 만들어집니다. 초기화: `flask --app app init-db`
+- VS Code에서는 `app.py`를 열고 오른쪽 위 ▶(Run Python File)를 눌러도 됩니다.
+- 5000번 포트를 다른 프로그램이 쓰고 있으면 5001, 5002 … 중 비어 있는 번호로 자동으로 켜집니다.
+- 처음 실행하면 `data/places.json`과 데모 데이터로 `trippin.db`가 만들어집니다. 처음 상태로 되돌리려면 `trippin.db`를 지우고 다시 실행하세요.
 - `.env`가 없어도 실행되며, 지도는 OpenStreetMap으로 나옵니다.
-- 테스트: `pip install pytest` 후 `python -m pytest -q`
+- 테스트: `python tests/test_trippin.py` (pytest 없이 실행됨)
 
 **데모 계정** (비밀번호 `trippin-demo`): `demo_owner`는 사업자 대시보드, `demo_kr1`·`demo_us1`·`demo_jp1` 등은 관광객 계정입니다.
 
@@ -148,12 +145,12 @@ flask --app app run --debug      # http://localhost:5000
 ## 데이터 다시 만들기
 
 ```bash
-python data/collect_sbiz.py            # 대전 중구 상가
-python data/collect_sbiz.py --daejeon  # 대전 전체 (체인 판정용)
-python data/collect_tour.py && python data/collect_tour.py --detail
-python data/collect_google.py --limit 850
-python data/gen_descriptions.py
-python data/build_places.py
+python data/tools/collect_sbiz.py            # 대전 중구 상가
+python data/tools/collect_sbiz.py --daejeon  # 대전 전체 (체인 판정용)
+python data/tools/collect_tour.py && python data/tools/collect_tour.py --detail
+python data/tools/collect_google.py --limit 850
+python data/tools/gen_descriptions.py
+python data/tools/build_places.py
 ```
 
 ## 배포
