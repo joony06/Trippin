@@ -73,7 +73,7 @@ $$S = 100 \times \sum_{i=1}^{6} w_i \cdot s_i$$
 | Gemini API | Short Korean and English descriptions written from TourAPI overviews |
 | Team review sheet | 3,490 places checked by hand for conglomerates, chains and non-shops |
 
-`data/build_places.py` merges everything into `data/places.json`. Collection scripts need API keys and are run locally only.
+`data/tools/build_places.py` merges everything into `data/places.json`. Collection scripts need API keys and are run locally only.
 
 ## Tech stack
 
@@ -89,46 +89,43 @@ $$S = 100 \times \sum_{i=1}^{6} w_i \cdot s_i$$
 
 ```
 Trippin/
-├─ app.py                  # Flask routes (Vercel looks for `app` here)
-├─ db.py                   # SQLite tables, queries, dashboard stats
-├─ core/
-│  ├─ search.py            # Hard filters → S1–S6 → ranking & diversity
-│  ├─ reviews.py           # Bayesian-adjusted ratings
-│  ├─ geo.py               # Distance and starting point
-│  ├─ romanize.py          # Korean → Latin letters for non-Korean screens
-│  └─ i18n.py              # Translation lookup
+├─ app.py                  # Entry point: routes for each page (Vercel looks for `app` here)
+├─ search.py               # Filtered search: hard filters → S1–S6 → ranking & diversity, distance, Bayesian ratings
+├─ database.py             # SQLite storage and queries, dashboard stats, demo accounts and data
+├─ texts.py                # ko / en / zh / ja UI text, Korean → Latin letters
 ├─ data/
-│  ├─ collect_sbiz.py      # SEMAS store information
-│  ├─ collect_tour.py      # TourAPI
-│  ├─ collect_google.py    # Google Places
-│  ├─ gen_descriptions.py  # Gemini descriptions
-│  ├─ build_places.py      # Merge → places.json
-│  ├─ seed_demo.py         # Demo accounts and dashboard data
-│  ├─ places.json          # Built place data (committed)
-│  └─ store_verdicts.json  # Team review results
-├─ i18n/                   # ko / en / zh / ja UI text
-├─ templates/              # Pages
-├─ public/                 # CSS, map scripts, logo (served by Vercel's CDN)
-├─ tests/                  # 21 tests, incl. the mid-term report example (A 67.6, B 46.3)
+│  ├─ places.json          # Built place data, 3,484 places (the only data needed to run)
+│  ├─ store_verdicts.json  # Team review results
+│  ├─ conglomerate_brands.txt, chain_brands.txt   # Conglomerate and large-chain brands
+│  ├─ descriptions.json    # Gemini descriptions
+│  └─ tools/               # Scripts that built the data (need API keys; not needed to run)
+│     ├─ apiutil.py        #   Shared helpers (.env, API calls)
+│     ├─ collect_sbiz.py   #   SEMAS store information
+│     ├─ collect_tour.py   #   TourAPI
+│     ├─ collect_google.py #   Google Places
+│     ├─ gen_descriptions.py # Gemini descriptions
+│     └─ build_places.py   #   Merge → places.json
+├─ i18n/                   # UI text (ko / en / zh / ja .json)
+├─ templates/              # Pages (HTML)
+├─ public/                 # CSS, map scripts, service-area boundary, logo (served by Vercel's CDN)
+├─ tests/test_trippin.py   # 22 tests, incl. the mid-term report example (A 67.6, B 46.3)
 └─ docs/handoff/           # Team handoff notes
 ```
 
 ## Running locally
 
+Requires Python 3.10 or later.
+
 ```bash
-git clone https://github.com/joony06/Trippin.git
-cd Trippin
-
-python3 -m venv .venv
-source .venv/bin/activate        # Windows: .venv\Scripts\activate
-pip install -r requirements.txt
-
-flask --app app run --debug      # http://localhost:5000
+pip install flask
+python app.py                    # opens the browser at http://127.0.0.1:5000
 ```
 
-- The database is created on first run from `data/places.json`, with demo data. Reset it with `flask --app app init-db`.
+- In VS Code, open `app.py` and press ▶ (Run Python File).
+- If port 5000 is busy, the next free port (5001, 5002, …) is used automatically.
+- The first run creates `trippin.db` from `data/places.json`, with demo data. Delete `trippin.db` and run again to start fresh.
 - Without `.env` the site still runs, using the OpenStreetMap map.
-- Tests: `pip install pytest`, then `python -m pytest -q`.
+- Tests: `python tests/test_trippin.py` (no pytest needed).
 
 **Demo accounts** (password `trippin-demo`): `demo_owner` opens the business dashboard; `demo_kr1`, `demo_us1`, `demo_jp1` and others are visitor accounts.
 
@@ -148,12 +145,12 @@ Copy `.env.example` to `.env`. **Never commit `.env`.**
 ## Rebuilding the data
 
 ```bash
-python data/collect_sbiz.py            # Jung-gu stores
-python data/collect_sbiz.py --daejeon  # all of Daejeon, for chain detection
-python data/collect_tour.py && python data/collect_tour.py --detail
-python data/collect_google.py --limit 850
-python data/gen_descriptions.py
-python data/build_places.py
+python data/tools/collect_sbiz.py            # Jung-gu stores
+python data/tools/collect_sbiz.py --daejeon  # all of Daejeon, for chain detection
+python data/tools/collect_tour.py && python data/tools/collect_tour.py --detail
+python data/tools/collect_google.py --limit 850
+python data/tools/gen_descriptions.py
+python data/tools/build_places.py
 ```
 
 ## Deployment
