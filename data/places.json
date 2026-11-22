@@ -39,7 +39,7 @@
     "가족",
     "사진명소"
    ],
-   "description": "뿌리공원은 성씨 조형물과 한국족보박물관이 있는 효 테마공원입니다. 잔디광장과 전망대, 산림욕장 등 다양한 시설을 갖추고 있습니다.",
+   "description": null,
    "dong": null,
    "address": "대전광역시 중구 뿌리공원로 79 뿌리공원",
    "lat": 36.2845,
@@ -61,8 +61,7 @@
    "image": "https://tong.visitkorea.or.kr/cms/resource/87/3569387_image2_1.jpg",
    "source": "tour",
    "source_id": "126838",
-   "id": 2,
-   "description_en": "Ppuri Park is a filial piety-themed park featuring family-name sculptures and the Korea Jokbo Museum. It offers facilities like an observatory and a lawn plaza."
+   "id": 2
   },
   {
    "name": "보문산 행복 숲 둘레길",
@@ -148,7 +147,7 @@
     "가족",
     "사진명소"
    ],
-   "description": "세련된 건물과 1970~80년대 풍경이 공존하는 대전 원도심 거리입니다. 외벽의 빈티지한 그림과 화방, 소극장, 갤러리가 아날로그적 풍경을 연출합니다.",
+   "description": null,
    "dong": null,
    "address": "대전광역시 중구 대흥동",
    "lat": 36.3258495568,
@@ -162,8 +161,7 @@
    "image": "https://tong.visitkorea.or.kr/cms/resource/50/3526650_image2_1.jpg",
    "source": "tour",
    "source_id": "1909639",
-   "id": 6,
-   "description_en": "Coexisting with modern buildings and 1970s–80s scenery, this street features vintage wall paintings, art supply shops, small theaters, and galleries."
+   "id": 6
   },
   {
    "name": "스카이로드",

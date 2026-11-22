@@ -1,13 +1,12 @@
-// 트립핀 지도 - Leaflet + OpenStreetMap (네이버 지도 폴백)
+// 트립핀 지도 (Leaflet + OpenStreetMap): 네이버 지도가 안 될 때 사용
 // 버전 기록
-// v0.1 (2026-11-18) 장소 마커 표시, 순위 번호 마커, 마커 클릭 시 상세로 이동(유입 경로 map)  (원래 map.js)
-// v0.2 (2026-11-19) 출발점을 #map-data의 origin에서 읽음 (현재 위치 반영)
-// v0.3 (2026-11-19) 네이버 지도 폴백 파일로 분리. map.js가 키가 없거나 네이버 지도 로드에 실패하면 이 함수를 부른다
-// v0.4 (2026-11-21) 최종 디자인: 물방울 핀, 기준점을 핀 끝으로 (map.js의 pinAnchor)
-// v0.5 (2026-11-21) 서비스 지역 밖 어둡게, 대전 전체 정도까지만 축소·이동
-// v0.6 (2026-11-21) 최소 축소 단계를 지도 칸 크기에 맞춰 계산 (map.js의 fitZoom)
-//
-// TrippinMap.leaflet(el, d)  d: map.js가 만든 공통 데이터 (origin, points, label, href, isSelected, pinHtml, popupHtml)
+// v0.1 장소·순위 마커
+// v0.2 출발점 표시
+// v0.3 네이버 지도 폴백 파일로 분리
+// v0.4 물방울 핀
+// v0.5 서비스 지역 밖 어둡게, 축소 제한
+// v0.6 최소 축소를 지도 칸 크기에 맞춤
+
 window.TrippinMap = window.TrippinMap || {};
 window.TrippinMap.leaflet = function (el, d) {
   if (typeof L === "undefined") return false;
@@ -21,14 +20,13 @@ window.TrippinMap.leaflet = function (el, d) {
     var b = a.daejeon_bounds;
     map.setMaxBounds(L.latLngBounds(b).pad(0.1));
     map.options.maxBoundsViscosity = 0.8;
-    map.setMinZoom(d.fitZoom(el, b));  // 대전광역시가 꽉 차게 보이는 단계까지만 축소
+    map.setMinZoom(d.fitZoom(el, b));
   });
   L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
     maxZoom: 19,
     attribution: "&copy; OpenStreetMap contributors"
   }).addTo(map);
 
-  // 출발점 (현재 위치 또는 대전 중구청 앞)
   L.circleMarker(d.origin, { radius: 7, weight: 3, color: "#FFFFFF", fillColor: "#2F86FF", fillOpacity: 1 })
     .addTo(map).bindTooltip("📍");
 

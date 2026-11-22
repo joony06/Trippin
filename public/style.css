@@ -1,14 +1,10 @@
 /* 트립핀 스타일
  * 버전 기록
- * v0.1 (2026-11-18) MVP 기본 스타일
- * v0.2 (2026-11-21) 최종 디자인 (시안 A+B): 지도가 화면을 채우고 왼쪽 패널에 검색·목록,
- *                   목록마다 점수 구성 막대(S1~S6), 핀은 로고의 물방울 모양, 글꼴 SUIT
- * v0.3 (2026-11-21) 로고 크게, 지도 로딩 화면, 하단(저작권·출처)을 모든 화면 맨 아래에 고정
- * v0.4 (2026-11-21) 로고 한 번 더 키움 (그림 여백을 잘라 34px = 이전보다 약 1.4배, 휴대폰 28px), 하단 두 줄(저작권 / 데이터 출처)
- * v0.5 (2026-11-21) 지도 화면은 하단을 창에 고정하지 않고 왼쪽 패널 맨 아래로 (지도가 화면 끝까지)
- *
- * 색은 로고에서 가져온다: 남색(글자·핀), 파랑(행동 버튼), 하늘(현재 위치·선택), 연파랑(바탕 강조).
- * 강조색은 '행동(파랑)'과 '선택·위치(하늘)' 두 군데에만 쓴다.
+ * v0.1 기본 스타일
+ * v0.2 최종 디자인: 지도 중심, 점수 구성 막대, 물방울 핀, SUIT 글꼴
+ * v0.3 로고 크게, 지도 로딩 화면, 하단 고정
+ * v0.4 로고 더 크게, 하단 두 줄
+ * v0.5 지도 화면은 하단을 왼쪽 패널 맨 아래로
  */
 :root {
   --ink: #0B1A4A;        /* 로고 남색: 글자, 핀 */
@@ -20,7 +16,6 @@
   --mute: #56668A;
   --paper: #F5F8FC;
   --warn: #B4462E;
-  /* 점수 구성 막대: 비중이 큰 기준일수록 진한 색 */
   --s1: #0B1A4A; --s2: #1E5BD8; --s3: #2F86FF; --s4: #6FA8F5; --s5: #A9CBF7; --s6: #CFE1FB;
   --r-panel: 14px; --r-ctl: 10px;
   --top: 68px;
@@ -45,14 +40,14 @@ h1, h2, h3 { letter-spacing: -0.02em; line-height: 1.25; }
 .small { font-size: 13px; }
 .error { color: var(--warn); font-weight: 700; }
 
-/* ---------------------------------------------------------------- 상단 바 */
+/* 상단 바 */
 .topbar {
   position: sticky; top: 0; z-index: 20; height: var(--top);
   display: flex; align-items: center; justify-content: space-between; gap: 16px;
   padding: 0 20px; background: #fff; border-bottom: 1px solid var(--line);
 }
 .brand { display: block; padding: 4px 0; }
-.brand img { height: 34px; display: block; } /* 로고 그림은 여백을 잘라 냈으므로 높이 = 글자 크기 */
+.brand img { height: 34px; display: block; }
 .topbar nav { display: flex; align-items: center; gap: 16px; font-size: 14px; min-width: 0; }
 .topbar nav > a { color: var(--ink); font-weight: 600; }
 .who { color: var(--mute); max-width: 120px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
@@ -61,7 +56,7 @@ h1, h2, h3 { letter-spacing: -0.02em; line-height: 1.25; }
 .langs a.on { color: var(--ink); font-weight: 800; background: var(--pale); }
 .langs a:hover { text-decoration: none; color: var(--ink); }
 
-/* ---------------------------------------------------------------- 일반 화면 */
+/* 일반 화면 */
 main { max-width: 1180px; margin: 0 auto; padding: 28px 20px 56px; }
 .mapapp-page main { max-width: none; padding: 0; }
 .split { display: grid; grid-template-columns: minmax(320px, 1fr) minmax(320px, 1fr); gap: 20px; align-items: start; margin-top: 16px; }
@@ -87,7 +82,7 @@ fieldset { border: 0; padding: 0; margin: 0 0 12px; }
 legend { font-size: 13px; font-weight: 700; margin-bottom: 8px; }
 .row { display: grid; grid-template-columns: 1fr 1fr; gap: 0 12px; }
 
-/* 버튼: 누르면 살짝 눌리는 느낌 (손 동작에 대한 반응만 움직인다) */
+/* 버튼 */
 .btn {
   display: inline-flex; align-items: center; justify-content: center; height: 42px; padding: 0 18px;
   background: var(--act); color: #fff; border: 0; border-radius: var(--r-ctl);
@@ -102,7 +97,7 @@ legend { font-size: 13px; font-weight: 700; margin-bottom: 8px; }
 .tag { display: inline-block; background: var(--pale); color: var(--ink); border-radius: 999px; padding: 2px 10px; font-size: 12px; font-weight: 600; margin: 0 4px 4px 0; }
 .tag.warn { background: #FBEAE6; color: var(--warn); }
 
-/* ---------------------------------------------------------------- 지도 화면 (첫 화면·결과) */
+/* 지도 화면 (첫 화면·결과) */
 .mapapp { display: grid; grid-template-columns: 420px 1fr; height: calc(100vh - var(--top)); height: calc(100dvh - var(--top)); }
 .sheet { display: flex; flex-direction: column; }
 .sheet > * { flex-shrink: 0; }
@@ -114,7 +109,7 @@ legend { font-size: 13px; font-weight: 700; margin-bottom: 8px; }
 .map-box { position: relative; }
 .map { height: 100%; }
 
-/* 지도 로딩 화면: 지도가 준비되면 사라진다 */
+/* 지도 로딩 화면 */
 .map-loading {
   position: absolute; inset: 0; z-index: 500; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 14px;
   background: var(--paper); color: var(--mute); font-size: 14px; font-weight: 600; transition: opacity .3s var(--ease), visibility .3s;
@@ -164,7 +159,7 @@ legend { font-size: 13px; font-weight: 700; margin-bottom: 8px; }
 .legend { list-style: none; display: flex; flex-wrap: wrap; gap: 4px 12px; margin: 0; padding: 8px 20px 10px; font-size: 11px; color: var(--mute); }
 .legend i, .key { display: inline-block; width: 9px; height: 9px; border-radius: 2px; margin-right: 5px; vertical-align: -1px; }
 
-/* 점수 구성 막대: 길이 = 총점(100점 만점), 칸 = 기준별 기여 */
+/* 점수 구성 막대 */
 .mix { display: flex; height: 6px; margin-top: 8px; border-radius: 3px; overflow: hidden; background: var(--hair); }
 .mix i { display: block; height: 100%; }
 .mix.big { height: 12px; border-radius: 6px; margin: 10px 0 16px; }
@@ -186,7 +181,7 @@ legend { font-size: 13px; font-weight: 700; margin-bottom: 8px; }
 .score b { font-size: 21px; font-weight: 800; letter-spacing: -0.02em; }
 .score small { font-size: 11px; color: var(--mute); font-weight: 600; }
 
-/* 물방울 핀 (로고의 핀 모양): 목록 번호 = 지도 번호 */
+/* 물방울 핀 */
 .rank, .pin {
   display: inline-grid; place-items: center; width: 28px; height: 28px; flex: none;
   border-radius: 50% 50% 50% 3px; transform: rotate(-45deg);
@@ -206,7 +201,7 @@ legend { font-size: 13px; font-weight: 700; margin-bottom: 8px; }
 .excluded { padding: 0; margin: 10px 0 0; list-style: none; font-size: 13px; }
 .excluded li { padding: 4px 0; }
 
-/* ---------------------------------------------------------------- 장소 상세 */
+/* 장소 상세 */
 .back { margin: 0 0 12px; font-size: 14px; }
 .back a::before { content: "‹ "; }
 .detail .map-box { height: 300px; border: 1px solid var(--line); border-radius: var(--r-panel); margin-bottom: 16px; overflow: hidden; }
@@ -231,7 +226,7 @@ legend { font-size: 13px; font-weight: 700; margin-bottom: 8px; }
 .review-form { background: var(--paper); border-radius: var(--r-ctl); padding: 16px; margin: 12px 0; }
 .review-form h3 { margin: 0 0 10px; font-size: 16px; }
 
-/* ---------------------------------------------------------------- 사업자 대시보드 */
+/* 사업자 대시보드 */
 .kpis { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 12px; margin: 20px 0; }
 .kpi { background: #fff; border: 1px solid var(--line); border-radius: var(--r-panel); padding: 18px 20px; display: flex; flex-direction: column; gap: 2px; }
 .kpi span { color: var(--mute); font-size: 13px; font-weight: 600; }
@@ -244,7 +239,7 @@ legend { font-size: 13px; font-weight: 700; margin-bottom: 8px; }
 .bar small { color: var(--mute); }
 .card ul { margin: 0 0 16px; padding-left: 18px; }
 
-/* 결과 화면: 폼 안의 카테고리 체크 칩은 숨기고(선택값은 그대로 전송), 위의 빠른 칩으로 바꾼다 */
+/* 결과 화면: 폼 안 카테고리 칩 숨김 */
 .search-card.compact .cats { display: none; }
 select, input[type=time] { font-weight: 500; }
 .hours { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 2px 16px; font-variant-numeric: tabular-nums; }
@@ -256,7 +251,7 @@ select, input[type=time] { font-weight: 500; }
 .ratios b { text-align: right; font-variant-numeric: tabular-nums; }
 .tips { border-left: 4px solid var(--sky); }
 
-/* ---------------------------------------------------------------- 휴대폰 */
+/* 휴대폰 */
 @media (max-width: 860px) {
   :root { --top: 56px; }
   .topbar { padding: 0 14px; gap: 10px; }

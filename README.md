@@ -43,7 +43,7 @@ Most inbound tourists, and most of what they spend, stay in Seoul. On existing m
 | 1 | **Filtered search** (core) | Visitors | Filters by distance, opening hours, budget, category and chain status, then ranks by six criteria (S1–S6). Results on a map with numbered pins, a per-place score bar, neighborhood summary and category chips |
 | 2 | **Small business dashboard** | Owners | Free 7-day views, saves, traffic sources, domestic/international visitors, top keywords, category average and rule-based tips |
 | 3 | **Reviews & ratings** | Visitors | One review per member and saves; Bayesian-adjusted ratings feed back into the next search |
-| 4 | **Four languages** | Everyone | Korean, English, Chinese and Japanese UI; English place names and descriptions where available, romanized names otherwise |
+| 4 | **Four languages** | Everyone | Korean, English, Chinese and Japanese UI; English place names where available, romanized names otherwise |
 
 ### Scoring
 
@@ -68,9 +68,8 @@ $$S = 100 \times \sum_{i=1}^{6} w_i \cdot s_i$$
 | Source | Used for |
 |---|---|
 | SEMAS store information (data.go.kr) | Restaurants and cafés in Jung-gu; chain detection across Daejeon |
-| Korea Tourism Organization TourAPI (Korean & English) | Attractions, photos, English names and overviews |
+| Korea Tourism Organization TourAPI (Korean & English) | Attractions, photos and English names |
 | Google Places API | Ratings, review counts and opening hours (634 places matched) |
-| Gemini API | Short Korean and English descriptions written from TourAPI overviews |
 | Team review sheet | 3,490 places checked by hand for conglomerates, chains and non-shops |
 
 `data/tools/build_places.py` merges everything into `data/places.json`. Collection scripts need API keys and are run locally only.
@@ -97,13 +96,11 @@ Trippin/
 │  ├─ places.json          # Built place data, 3,484 places (the only data needed to run)
 │  ├─ store_verdicts.json  # Team review results
 │  ├─ conglomerate_brands.txt, chain_brands.txt   # Conglomerate and large-chain brands
-│  ├─ descriptions.json    # Gemini descriptions
 │  └─ tools/               # Scripts that built the data (need API keys; not needed to run)
 │     ├─ apiutil.py        #   Shared helpers (.env, API calls)
 │     ├─ collect_sbiz.py   #   SEMAS store information
 │     ├─ collect_tour.py   #   TourAPI
 │     ├─ collect_google.py #   Google Places
-│     ├─ gen_descriptions.py # Gemini descriptions
 │     └─ build_places.py   #   Merge → places.json
 ├─ i18n/                   # UI text (ko / en / zh / ja .json)
 ├─ templates/              # Pages (HTML)
@@ -139,7 +136,6 @@ Copy `.env.example` to `.env`. **Never commit `.env`.**
 | `NAVER_MAP_CLIENT_ID` | NAVER map | Local · Vercel |
 | `DATA_GO_KR_KEY` | Public Data Portal (collection) | Local only |
 | `GOOGLE_PLACES_KEY` | Google Places (collection) | Local only |
-| `GEMINI_API_KEY` | Descriptions (collection) | Local only |
 | `TRIPPIN_DB` | SQLite file path (optional) | Local |
 
 ## Rebuilding the data
@@ -147,9 +143,8 @@ Copy `.env.example` to `.env`. **Never commit `.env`.**
 ```bash
 python data/tools/collect_sbiz.py            # Jung-gu stores
 python data/tools/collect_sbiz.py --daejeon  # all of Daejeon, for chain detection
-python data/tools/collect_tour.py && python data/tools/collect_tour.py --detail
+python data/tools/collect_tour.py
 python data/tools/collect_google.py --limit 850
-python data/tools/gen_descriptions.py
 python data/tools/build_places.py
 ```
 
