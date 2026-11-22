@@ -1,24 +1,13 @@
-# 트립핀 데이터 저장: SQLite(파이썬 기본 sqlite3 모듈)로 장소·회원·리뷰·찜·조회 기록을 저장하고 꺼낸다
+# 트립핀 데이터 저장 (SQLite): 장소·회원·리뷰·찜·조회 기록
 #
 # 버전 기록
-# v0.1 (2026-11-18) 테이블 생성(장소·회원·리뷰·찜·조회 기록), 샘플 데이터 적재, 조회·저장 함수 작성 (db.py)
-# v0.2 (2026-11-18) 실제 데이터(data/places.json) 적재, 장소에 영문 이름·동·주소·사진·출처 열 추가
-# v0.3 (2026-11-18) 대형 프랜차이즈 여부(is_franchise) 열 추가
-# v0.4 (2026-11-19) 영문 설명문(description_en) 열 추가
-# v0.5 (2026-11-21) 업종 평균 조회수: 최근 7일, 조회가 있는 같은 업종 가게끼리 평균. 장소를 새로 넣을 때 시연용 데이터도 함께 넣음
-# v0.6 (2026-11-21) 시연용 계정·리뷰·찜·조회 기록 넣기 (data/seed_demo.py)
-# v0.7 (2026-11-22) 수업 수준으로 다시 정리: db.py + data/seed_demo.py를 이 파일 하나로 합침
-#                   - 쓰지 않던 샘플 데이터(data/sample_places.json) 대신 항상 data/places.json을 넣음
-#                   - 같은 날짜 계산·딕셔너리 만들기를 for 반복문으로 풀어 씀. 저장되는 값과 화면 결과는 v0.6과 같다
+# v0.1 테이블 생성, 조회·저장 함수
+# v0.2 places.json 적재, 장소 열 추가
+# v0.3 대형 프랜차이즈 열 추가
+# v0.4 업종 평균 조회수: 최근 7일, 조회 있는 가게끼리
+# v0.5 시연용 데이터 추가
 #
-# 저장 위치
-# - 로컬: 프로젝트 폴더의 trippin.db (처음 실행할 때 자동으로 만들어진다. 환경 변수 TRIPPIN_DB로 바꿀 수 있음)
-# - Vercel: /tmp/trippin.db. 서버가 새로 뜨면 처음 상태로 돌아간다 (시연용)
-#
-# 시연용 계정 (실제 개인정보 아님, 비밀번호는 모두 trippin-demo)
-#   사업자: demo_owner → 대시보드에서 DEMO_PLACE 가게의 지표를 본다
-#   관광객: demo_kr1, demo_us1, demo_jp1 …
-#   넣지 않으려면 환경 변수 TRIPPIN_DEMO=0
+# 시연용 계정: demo_owner(사업자), demo_kr1 등(관광객), 비밀번호 trippin-demo
 
 import json
 import os
@@ -29,7 +18,7 @@ from datetime import datetime, timedelta
 from werkzeug.security import generate_password_hash
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
-PLACES_PATH = os.path.join(BASE_DIR, "data", "places.json")  # data/tools/build_places.py 결과
+PLACES_PATH = os.path.join(BASE_DIR, "data", "places.json")
 
 if os.environ.get("TRIPPIN_DB"):
     DB_PATH = os.environ["TRIPPIN_DB"]
@@ -38,7 +27,6 @@ elif os.environ.get("VERCEL") == "1":
 else:
     DB_PATH = os.path.join(BASE_DIR, "trippin.db")
 
-# 시연용 데이터
 DEMO_PASSWORD = "trippin-demo"
 DEMO_OWNER = "demo_owner"
 DEMO_PLACE = "미소본가스마일칼국수"   # 없으면 관광공사 음식점 중 첫 번째
@@ -55,7 +43,6 @@ CREATE TABLE IF NOT EXISTS places (
     name TEXT NOT NULL,
     categories TEXT NOT NULL,          -- JSON 목록, 첫 번째가 대표 카테고리
     description TEXT,
-    description_en TEXT,               -- Gemini 영문 설명 (관광공사 장소)
     lat REAL NOT NULL,
     lng REAL NOT NULL,
     fee INTEGER DEFAULT 0,
@@ -99,14 +86,12 @@ CREATE TABLE IF NOT EXISTS views (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     place_id INTEGER NOT NULL REFERENCES places(id),
     user_id INTEGER REFERENCES users(id),
-    source TEXT NOT NULL,              -- list / map / direct (어디서 눌러 들어왔는지)
-    query TEXT,                        -- 그때의 검색어
+    source TEXT NOT NULL,              -- 유입 경로: list / map / direct
+    query TEXT,                        -- 조회 당시 검색어
     created_at TEXT NOT NULL
 );
 """
 
-
-# ---------------------------------------------------------------- 준비
 
 def now():
     return datetime.now().isoformat(timespec="seconds")
@@ -114,43 +99,50 @@ def now():
 
 def connect():
     conn = sqlite3.connect(DB_PATH)
-    conn.row_factory = sqlite3.Row  # 결과를 row["name"]처럼 이름으로 꺼낼 수 있게
+    conn.row_factory = sqlite3.Row
     conn.execute("PRAGMA foreign_keys = ON")
     return conn
 
 
 def init_db(reset=False):
-    """테이블을 만들고, 장소가 비어 있으면 places.json과 시연용 데이터를 넣는다."""
     if reset and os.path.exists(DB_PATH):
         os.remove(DB_PATH)
-    with connect() as conn:
+    conn = connect()
+    try:
         conn.executescript(SCHEMA)
         count = conn.execute("SELECT COUNT(*) FROM places").fetchone()[0]
         if count == 0:
             load_places(conn, PLACES_PATH)
             seed_demo(conn)
+    finally:
+        conn.commit()
+        conn.close()
 
 
 def load_places(conn, path):
-    with open(path, encoding="utf-8") as f:
+    f = open(path, encoding="utf-8")
+    try:
         data = json.load(f)
+    finally:
+        f.close()
     for p in data["places"]:
-        hours = json.dumps(p.get("hours")) if p.get("hours") is not None else None
+        if p.get("hours") is not None:
+            hours = json.dumps(p.get("hours"))
+        else:
+            hours = None
         conn.execute(
             """INSERT OR REPLACE INTO places
-               (id, name, categories, description, description_en, lat, lng, fee, hours,
+               (id, name, categories, description, lat, lng, fee, hours,
                 is_conglomerate, is_franchise, google_rating, google_reviews,
                 name_en, dong, address, image, source)
-               VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
+               VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
             (p["id"], p["name"], json.dumps(p["categories"], ensure_ascii=False),
-             p.get("description"), p.get("description_en"), p["lat"], p["lng"], p.get("fee", 0), hours,
+             p.get("description"), p["lat"], p["lng"], p.get("fee", 0), hours,
              int(p.get("is_conglomerate", False)), int(p.get("is_franchise", False)),
              p.get("google_rating"), p.get("google_reviews"),
              p.get("name_en"), p.get("dong"), p.get("address"), p.get("image"), p.get("source", "sample")),
         )
 
-
-# ---------------------------------------------------------------- 시연용 데이터 (사업자 대시보드가 빈 화면이 되지 않게)
 
 def pick_demo_place(conn):
     row = conn.execute("SELECT id FROM places WHERE name = ?", (DEMO_PLACE,)).fetchone()
@@ -159,7 +151,10 @@ def pick_demo_place(conn):
     row = conn.execute(
         """SELECT id FROM places WHERE source = 'tour' AND is_conglomerate = 0 AND is_franchise = 0
            AND categories LIKE '%음식%' ORDER BY id LIMIT 1""").fetchone()
-    return row[0] if row else None
+    if row:
+        return row[0]
+    else:
+        return None
 
 
 def insert_view(conn, place_id, user_id, source, query, when):
@@ -168,7 +163,6 @@ def insert_view(conn, place_id, user_id, source, query, when):
 
 
 def seed_demo(conn):
-    """시연용 계정·리뷰·찜·최근 7일 조회 기록을 넣는다. 이미 있거나 꺼져 있으면 넣지 않는다. 넣었으면 True"""
     if os.environ.get("TRIPPIN_DEMO") == "0":
         return False
     if conn.execute("SELECT 1 FROM users WHERE username = ?", (DEMO_OWNER,)).fetchone():
@@ -177,21 +171,21 @@ def seed_demo(conn):
     if place_id is None:
         return False
 
-    rng = random.Random(42)  # 씨앗(42)을 고정해 매번 같은 시연 화면이 나오게 (10주차 random 모듈)
+    rng = random.Random(42)  # 시연 데이터 고정
     today = datetime.now()
     pw = generate_password_hash(DEMO_PASSWORD)
     stamp = today.isoformat(timespec="seconds")
 
     conn.execute("INSERT INTO users (username, pw_hash, nationality, role, owner_place_id, created_at) "
                  "VALUES (?, ?, 'KR', 'owner', ?, ?)", (DEMO_OWNER, pw, place_id, stamp))
-    ids = {}  # 관광객 아이디 → 회원 번호
+    ids = {}
     for name, nationality in DEMO_TOURISTS:
         cur = conn.execute("INSERT INTO users (username, pw_hash, nationality, role, created_at) "
                            "VALUES (?, ?, ?, 'tourist', ?)", (name, pw, nationality, stamp))
         ids[name] = cur.lastrowid
 
-    # 최근 7일 조회 기록 (하루 3~7번, 주말은 3번 더)
-    visitors = list(ids.values()) + [None]  # None = 로그인 안 한 방문자
+    # 최근 7일 조회 (하루 3~7번, 주말 +3)
+    visitors = list(ids.values()) + [None]  # None = 비로그인
     for day in range(7):
         d = today - timedelta(days=6 - day)
         n = rng.randint(3, 7)
@@ -201,10 +195,13 @@ def seed_demo(conn):
             user = rng.choice(visitors)
             source = rng.choices(["list", "map", "direct"], weights=[5, 3, 1])[0]
             when = d.replace(hour=rng.randint(10, 20), minute=rng.randint(0, 59), second=0)
-            query = rng.choice(DEMO_QUERIES) if source == "list" else None
+            if source == "list":
+                query = rng.choice(DEMO_QUERIES)
+            else:
+                query = None
             insert_view(conn, place_id, user, source, query, when)
 
-    # 같은 업종 다른 가게 40곳에도 조회를 조금씩 (업종 평균이 0이 되지 않게)
+    # 업종 평균용 다른 가게 조회
     others = conn.execute(
         "SELECT id FROM places WHERE id != ? AND categories LIKE '[\"음식\"%' AND is_franchise = 0 "
         "AND is_conglomerate = 0 ORDER BY id LIMIT 40", (place_id,)).fetchall()
@@ -221,21 +218,21 @@ def seed_demo(conn):
     return True
 
 
-# ---------------------------------------------------------------- 장소
-
 def place_from_row(row):
-    """DB 한 줄 → 장소 딕셔너리 (JSON 글자는 목록·딕셔너리로, 0/1은 True/False로)"""
     p = dict(row)
     p["categories"] = json.loads(p["categories"])
-    p["hours"] = json.loads(p["hours"]) if p["hours"] else None
+    if p["hours"]:
+        p["hours"] = json.loads(p["hours"])
+    else:
+        p["hours"] = None
     p["is_conglomerate"] = bool(p["is_conglomerate"])
     p["is_franchise"] = bool(p["is_franchise"])
     return p
 
 
 def all_places_with_stats():
-    """검색에 쓰는 장소 정보 + 트립핀 리뷰 평균·개수 + 찜 수"""
-    with connect() as conn:
+    conn = connect()
+    try:
         rows = conn.execute(
             """SELECT p.*,
                       (SELECT AVG(rating) FROM reviews r WHERE r.place_id = p.id) AS own_avg,
@@ -243,6 +240,9 @@ def all_places_with_stats():
                       (SELECT COUNT(*) FROM likes l WHERE l.place_id = p.id) AS likes
                FROM places p ORDER BY p.id"""
         ).fetchall()
+    finally:
+        conn.commit()
+        conn.close()
     places = []
     for r in rows:
         places.append(place_from_row(r))
@@ -250,7 +250,6 @@ def all_places_with_stats():
 
 
 def get_place(place_id):
-    """장소 번호로 하나 찾기. 없으면 None"""
     for p in all_places_with_stats():
         if p["id"] == place_id:
             return p
@@ -258,41 +257,59 @@ def get_place(place_id):
 
 
 def site_average():
-    """사이트 전체 평균 별점 (S6의 C). 리뷰가 없으면 None"""
-    with connect() as conn:
+    conn = connect()
+    try:
         return conn.execute("SELECT AVG(rating) FROM reviews").fetchone()[0]
+    finally:
+        conn.commit()
+        conn.close()
 
-
-# ---------------------------------------------------------------- 회원
 
 def create_user(username, pw_hash, nationality, role="tourist", owner_place_id=None):
-    with connect() as conn:
+    conn = connect()
+    try:
         cur = conn.execute(
             """INSERT INTO users (username, pw_hash, nationality, role, owner_place_id, created_at)
                VALUES (?, ?, ?, ?, ?, ?)""",
             (username, pw_hash, nationality, role, owner_place_id, now()),
         )
         return cur.lastrowid
+    finally:
+        conn.commit()
+        conn.close()
 
 
 def get_user_by_name(username):
-    with connect() as conn:
+    conn = connect()
+    try:
         row = conn.execute("SELECT * FROM users WHERE username = ?", (username,)).fetchone()
-    return dict(row) if row else None
+    finally:
+        conn.commit()
+        conn.close()
+    if row:
+        return dict(row)
+    else:
+        return None
 
 
 def get_user(user_id):
-    with connect() as conn:
+    conn = connect()
+    try:
         row = conn.execute("SELECT * FROM users WHERE id = ?", (user_id,)).fetchone()
-    return dict(row) if row else None
+    finally:
+        conn.commit()
+        conn.close()
+    if row:
+        return dict(row)
+    else:
+        return None
 
-
-# ---------------------------------------------------------------- 리뷰·찜
 
 def upsert_review(user_id, place_id, rating, body):
-    """같은 가게에 다시 쓰면 수정으로 처리한다 (1인 1리뷰)."""
+    """같은 가게 재작성 시 수정 처리"""
     t = now()
-    with connect() as conn:
+    conn = connect()
+    try:
         conn.execute(
             """INSERT INTO reviews (user_id, place_id, rating, body, created_at, updated_at)
                VALUES (?, ?, ?, ?, ?, ?)
@@ -301,16 +318,23 @@ def upsert_review(user_id, place_id, rating, body):
                              updated_at = excluded.updated_at""",
             (user_id, place_id, rating, body, t, t),
         )
+    finally:
+        conn.commit()
+        conn.close()
 
 
 def reviews_for_place(place_id):
-    with connect() as conn:
+    conn = connect()
+    try:
         rows = conn.execute(
             """SELECT r.*, u.username, u.nationality FROM reviews r
                JOIN users u ON u.id = r.user_id
                WHERE r.place_id = ? ORDER BY r.updated_at DESC""",
             (place_id,),
         ).fetchall()
+    finally:
+        conn.commit()
+        conn.close()
     reviews = []
     for r in rows:
         reviews.append(dict(r))
@@ -318,40 +342,57 @@ def reviews_for_place(place_id):
 
 
 def user_review(user_id, place_id):
-    with connect() as conn:
+    conn = connect()
+    try:
         row = conn.execute("SELECT * FROM reviews WHERE user_id = ? AND place_id = ?", (user_id, place_id)).fetchone()
-    return dict(row) if row else None
+    finally:
+        conn.commit()
+        conn.close()
+    if row:
+        return dict(row)
+    else:
+        return None
 
 
 def toggle_like(user_id, place_id):
-    """찜이 있으면 지우고 없으면 넣는다. 결과로 찜 상태(True/False)를 돌려준다."""
-    with connect() as conn:
+    conn = connect()
+    try:
         exists = conn.execute("SELECT 1 FROM likes WHERE user_id = ? AND place_id = ?", (user_id, place_id)).fetchone()
         if exists:
             conn.execute("DELETE FROM likes WHERE user_id = ? AND place_id = ?", (user_id, place_id))
             return False
         conn.execute("INSERT INTO likes (user_id, place_id, created_at) VALUES (?, ?, ?)", (user_id, place_id, now()))
         return True
+    finally:
+        conn.commit()
+        conn.close()
 
 
 def has_liked(user_id, place_id):
-    with connect() as conn:
+    conn = connect()
+    try:
         row = conn.execute("SELECT 1 FROM likes WHERE user_id = ? AND place_id = ?", (user_id, place_id)).fetchone()
+    finally:
+        conn.commit()
+        conn.close()
     return row is not None
 
 
-# ---------------------------------------------------------------- 조회 기록·사업자 대시보드
-
 def log_view(place_id, user_id, source, query):
-    with connect() as conn:
+    conn = connect()
+    try:
         conn.execute("INSERT INTO views (place_id, user_id, source, query, created_at) VALUES (?, ?, ?, ?, ?)",
                      (place_id, user_id, source, query or None, now()))
+    finally:
+        conn.commit()
+        conn.close()
 
 
 def dashboard_stats(place_id, days=7):
-    """사업자 대시보드 지표: 일별 조회수, 찜 수, 유입 경로, 내·외국인 비율, 많이 걸린 검색어, 업종 평균 조회수"""
+    """사업자 대시보드 지표: 일별 조회수, 찜 수, 유입 경로, 내·외국인 비율, 검색어, 업종 평균 조회수"""
     since = (datetime.now() - timedelta(days=days - 1)).date().isoformat()
-    with connect() as conn:
+    conn = connect()
+    try:
         daily_rows = conn.execute(
             """SELECT substr(created_at, 1, 10) AS day, COUNT(*) AS n FROM views
                WHERE place_id = ? AND substr(created_at, 1, 10) >= ? GROUP BY day""",
@@ -374,8 +415,10 @@ def dashboard_stats(place_id, days=7):
                       (SELECT COUNT(*) FROM views v WHERE v.place_id = p.id AND substr(v.created_at, 1, 10) >= ?) AS n
                FROM places p""",
             (since,)).fetchall()
+    finally:
+        conn.commit()
+        conn.close()
 
-    # 최근 7일을 하루씩: 조회가 없는 날은 0
     by_day = {}
     for r in daily_rows:
         by_day[r["day"]] = r["n"]
@@ -384,8 +427,7 @@ def dashboard_stats(place_id, days=7):
         d = (datetime.now() - timedelta(days=days - 1 - i)).date().isoformat()
         daily.append({"day": d, "n": by_day.get(d, 0)})
 
-    # 같은 업종(대표 카테고리) 평균 조회수: 최근 7일 동안 조회가 있었던 같은 업종 가게끼리 평균
-    # (수천 곳의 0을 섞으면 평균이 0에 가까워진다)
+    # 업종 평균: 최근 7일 조회가 있는 같은 업종 가게 기준
     main_cat = None
     for r in per_place:
         if r["id"] == place_id:
@@ -394,7 +436,10 @@ def dashboard_stats(place_id, days=7):
     for r in per_place:
         if r["n"] > 0 and r["id"] != place_id and json.loads(r["categories"])[0] == main_cat:
             same.append(r["n"])
-    category_avg = sum(same) / len(same) if same else 0
+    if same:
+        category_avg = sum(same) / len(same)
+    else:
+        category_avg = 0
 
     sources = {}
     for r in source_rows:
@@ -419,7 +464,6 @@ def dashboard_stats(place_id, days=7):
 
 
 def feedback_rules(stats):
-    """지표에 따라 개선 방향 안내 문구(번역 키)를 고른다 (정해 둔 규칙)"""
     tips = []
     views = stats["total_views"]
     likes = stats["likes"]

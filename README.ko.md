@@ -43,7 +43,7 @@
 | 1 | **필터링 검색** (핵심) | 관광객 | 거리·영업시간·예산·카테고리·체인 여부로 거른 뒤 6개 기준(S1~S6)으로 순위. 번호 핀 지도, 장소별 점수 구성 막대, 동네별 요약, 카테고리 칩 |
 | 2 | **소상공인·중소기업 대시보드** | 사업자 | 최근 7일 조회수, 찜, 유입 경로, 내·외국인, 많이 걸린 검색어, 업종 평균, 개선 제안을 무료로 |
 | 3 | **리뷰·평점** | 관광객 | 회원 1인 1리뷰와 찜, 베이지안 보정 평점이 다음 검색에 반영 |
-| 4 | **4개 국어** | 모두 | 한국어·영어·중국어·일본어 화면. 영문 장소 이름·설명이 있으면 보여 주고, 없으면 로마자로 표시 |
+| 4 | **4개 국어** | 모두 | 한국어·영어·중국어·일본어 화면. 영문 장소 이름이 있으면 보여 주고, 없으면 로마자로 표시 |
 
 ### 점수 계산
 
@@ -68,9 +68,8 @@ $$S = 100 \times \sum_{i=1}^{6} w_i \cdot s_i$$
 | 출처 | 쓰임 |
 |---|---|
 | 소상공인시장진흥공단 상가(상권)정보 (공공데이터포털) | 대전 중구 음식점·카페, 대전 전체로 대형 체인 판정 |
-| 한국관광공사 TourAPI (국문·영문) | 관광지, 사진, 영문 이름·개요 |
+| 한국관광공사 TourAPI (국문·영문) | 관광지, 사진, 영문 이름 |
 | Google Places API | 평점, 리뷰 수, 영업시간 (634곳 매칭) |
-| Gemini API | TourAPI 개요로 짧은 한국어·영어 소개문 생성 |
 | 팀 검수표 | 3,490곳을 사람이 직접 확인 (대기업·대형 체인·기관) |
 
 `data/tools/build_places.py`가 모두 합쳐 `data/places.json`을 만듭니다. 수집 스크립트는 API 키가 필요해 로컬에서만 실행합니다.
@@ -97,13 +96,11 @@ Trippin/
 │  ├─ places.json          # 완성된 장소 데이터 3,484곳 (실행에 필요한 유일한 데이터)
 │  ├─ store_verdicts.json  # 팀 검수 결과
 │  ├─ conglomerate_brands.txt, chain_brands.txt   # 대기업·대형 체인 브랜드
-│  ├─ descriptions.json    # Gemini 소개문
 │  └─ tools/               # 데이터를 만든 스크립트 (API 키 필요, 실행에는 필요 없음)
 │     ├─ apiutil.py        #   공통 도구 (.env, API 호출)
 │     ├─ collect_sbiz.py   #   상가정보 수집
 │     ├─ collect_tour.py   #   TourAPI 수집
 │     ├─ collect_google.py #   구글 평점·영업시간
-│     ├─ gen_descriptions.py # Gemini 소개문
 │     └─ build_places.py   #   합치기 → places.json
 ├─ i18n/                   # 화면 문구 (ko·en·zh·ja.json)
 ├─ templates/              # 화면 (HTML)
@@ -139,7 +136,6 @@ python app.py                    # 브라우저가 자동으로 열립니다 (ht
 | `NAVER_MAP_CLIENT_ID` | 네이버 지도 | 로컬 · Vercel |
 | `DATA_GO_KR_KEY` | 공공데이터포털 (수집) | 로컬만 |
 | `GOOGLE_PLACES_KEY` | 구글 Places (수집) | 로컬만 |
-| `GEMINI_API_KEY` | 소개문 생성 (수집) | 로컬만 |
 | `TRIPPIN_DB` | SQLite 파일 경로 (선택) | 로컬 |
 
 ## 데이터 다시 만들기
@@ -147,9 +143,8 @@ python app.py                    # 브라우저가 자동으로 열립니다 (ht
 ```bash
 python data/tools/collect_sbiz.py            # 대전 중구 상가
 python data/tools/collect_sbiz.py --daejeon  # 대전 전체 (체인 판정용)
-python data/tools/collect_tour.py && python data/tools/collect_tour.py --detail
+python data/tools/collect_tour.py
 python data/tools/collect_google.py --limit 850
-python data/tools/gen_descriptions.py
 python data/tools/build_places.py
 ```
 

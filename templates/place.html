@@ -10,7 +10,7 @@
       <h1 class="place-name">{{ place_name(place) }}</h1>
       {% if lang != 'ko' %}<p class="muted">{{ place.name }}</p>{% endif %}
       <p>{% for c in place.categories %}<span class="tag">{{ t('cat_' ~ c) }}</span>{% endfor %}</p>
-      {% if lang != 'ko' and place.description_en %}<p>{{ place.description_en }}</p>{% elif place.description %}<p>{{ place.description }}</p>{% endif %}
+      {% if place.description %}<p>{{ place.description }}</p>{% endif %}
       {% if place.address %}<p class="small muted">{{ place.address }}</p>{% endif %}
       <dl class="facts">
         <dt>{{ t('fee') }}</dt><dd>{{ t('no_info') if place.fee is none else (t('free') if place.fee == 0 else '{:,}'.format(place.fee) ~ ' ' ~ t('won')) }}</dd>
@@ -27,7 +27,7 @@
       {% if own_place %}
       <p class="small muted">{{ t('own_place_note') }}</p>
       {% else %}
-      {# 로그인 안 했으면 누를 때 로그인 화면으로 갔다가, 로그인 후 이 화면으로 돌아와 찜이 처리된다 #}
+      {# 비로그인 시 로그인 후 돌아와 찜 처리 #}
       <form method="post" action="{{ url_for('like', place_id=place.id) }}">
         <input type="hidden" name="next" value="{{ next_url }}">
         <button class="btn {{ 'ghost' if liked }}">{{ '♥ ' ~ t('unlike') if liked else '♡ ' ~ t('like') }}</button>

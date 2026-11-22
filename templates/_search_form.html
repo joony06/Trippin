@@ -1,5 +1,5 @@
 <form class="search-card{{ ' compact' if not form_open }}" action="{{ url_for('search_view') }}" method="get">
-  {# 현재 위치: 브라우저 위치를 숨은 칸 lat, lng에 넣어 보낸다. 대전 중구 밖이거나 못 받으면 서버가 기본 위치를 쓴다 #}
+  {# 현재 위치: 숨은 칸 lat, lng로 전송, 중구 밖·실패 시 기본 위치 #}
   {% set origin_keys = {'current': 'origin_current', 'outside': 'origin_outside'} %}
   <p class="origin-note" id="origin-note" data-state="{{ origin_state }}" data-located="{{ t('origin_located') }}">{{ t(origin_keys.get(origin_state, 'origin_note')) }}</p>
   <input type="hidden" name="lat" id="origin-lat" value="{{ request.args.get('lat', '') if origin_state != 'default' }}">
@@ -17,7 +17,7 @@
       {% endfor %}
     </div>
   </fieldset>
-  {# 거리·예산·요일·시각: 첫 화면에서는 펼치고, 결과 화면에서는 접어 둔다 #}
+  {# 거리·예산·요일·시각: 첫 화면은 펼침, 결과 화면은 접힘 #}
   <details class="more" {{ 'open' if form_open }}>
     <summary>{{ '%g'|format(cond.max_km) }} km · {{ t('f_budget_none') if cond.budget is none else (t('free') if cond.budget == 0 else '{:,}'.format(cond.budget) ~ ' ' ~ t('won')) }}{% if cond.day is not none %} · {{ t('day_' ~ cond.day) }}{% endif %}{% if cond.time %} {{ cond.time }}{% endif %}</summary>
     <div class="row">
@@ -45,7 +45,7 @@
   </details>
 </form>
 <script>
-  // 브라우저 위치 받기 (localhost·HTTPS에서만 동작). 거부·실패하면 숨은 칸을 비워 두어 기본 위치로 계산된다
+  // 브라우저 위치 받기 (localhost·HTTPS 전용), 실패 시 기본 위치
   (function () {
     if (!navigator.geolocation) return;
     navigator.geolocation.getCurrentPosition(function (pos) {

@@ -1,7 +1,7 @@
 {% extends "base.html" %}
 {% block title %}{{ t('results_title') }}{% endblock %}
 {% block body_class %}page mapapp-page{% endblock %}
-{# 지도 화면: 하단을 창에 고정하지 않고 왼쪽 패널 맨 아래에 둔다 (지도를 화면 끝까지) #}
+{# 지도 화면: 하단을 왼쪽 패널 맨 아래에 배치 #}
 {% block footer %}{% endblock %}
 {% block content %}
 <div class="mapapp">
@@ -9,7 +9,7 @@
     {% set form_open = False %}
     {% include "_search_form.html" %}
 
-    {# 카테고리 칩: 누르면 다른 조건은 그대로, 카테고리만 바꿔 다시 검색 #}
+    {# 카테고리 칩: 카테고리만 바꿔 재검색 #}
     <nav class="quick" aria-label="{{ t('f_categories') }}">
       <a class="qchip {{ 'on' if not cond.categories }}" href="{{ cat_all_url }}">{{ t('cat_all') }}</a>
       {% for c, url in cat_links %}
@@ -24,7 +24,7 @@
       {% if total > ranked|length %}<p>{{ t('showing_top', n=ranked|length) }}</p>{% endif %}
     </div>
 
-    {# 동네별 요약: 누르면 그 동네 결과만 보기 #}
+    {# 동네별 요약: 해당 동네 결과만 보기 #}
     {% if dong_links %}
     <nav class="quick dongs" aria-label="{{ t('dong_summary') }}">
       <a class="qchip {{ 'on' if not dong }}" href="{{ dong_all_url }}">{{ t('dong_all') }}</a>
@@ -36,7 +36,7 @@
     {% endif %}
 
     {% if ranked %}
-    {# 점수 구성 막대 범례: 막대 길이 = 총점, 색 = 기준별 기여 #}
+    {# 점수 구성 막대 범례: 길이 = 총점, 색 = 기준별 기여 #}
     <ul class="legend">
       {% for k in WEIGHTS %}<li><i class="seg-{{ k }}"></i>{{ t(k) }}</li>{% endfor %}
     </ul>
@@ -50,7 +50,7 @@
         <a class="result" href="{{ url_for('place_detail', place_id=p.id, src='list', **args) }}">
           <span class="rank"><b>{{ p.rank }}</b></span>
           <span class="body">
-            {# 한국어가 아니면 영문 이름(없으면 로마자)을 먼저 보여 주고, 원래 한글 이름은 작게 덧붙인다 #}
+            {# 외국어 화면: 영문 이름(없으면 로마자) + 작은 한글 이름 #}
             <strong>{{ place_name(p) }}</strong>{% if lang != 'ko' %} <span class="alt">{{ p.name }}</span>{% endif %}
             <span class="meta">{% for c in p.categories %}{{ t('cat_' ~ c) }}{{ ', ' if not loop.last }}{% endfor %} · {{ '%.1f'|format(p.distance_km) }} km{% if p.google_rating %} · ★ {{ p.google_rating }}{% endif %}</span>
             <span class="mix" title="{{ t('score_detail') }}">{% for k, v in p.result.contrib.items() %}{% if v %}<i class="seg-{{ k }}" style="width: {{ '%.2f'|format(v * 100) }}%"></i>{% endif %}{% endfor %}</span>
@@ -65,7 +65,7 @@
     </ol>
 
     {% if excluded %}
-    {# 제외된 곳은 기본으로 접어 둔다 (휴대폰에서 결과보다 위에 길게 나오지 않게). 누르면 펼쳐짐 #}
+    {# 제외된 곳: 기본 접힘 #}
     <details class="excluded-box">
       <summary>{{ t('excluded_title') }} ({{ excluded|length }})</summary>
       <ul class="excluded">
